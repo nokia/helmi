@@ -1,5 +1,5 @@
 # helmi
-Open Service Broker API Implementation using helm &amp; kubectl
+Open Service Broker API Implementation using helm
 
 ![alt Logo](docs/logo.png)
 
