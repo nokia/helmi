@@ -24,7 +24,7 @@ func createClient() (*kubernetes.Clientset, error) {
 		os.Getenv("USERPROFILE")
 	}
 
-	configPath := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+	configPath := filepath.Join(homePath, ".kube", "config")
 
 	if _, err := os.Stat(configPath); err == nil {
 		config, err := clientcmd.BuildConfigFromFlags("", configPath)
