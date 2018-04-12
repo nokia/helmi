@@ -90,7 +90,7 @@ pipeline {
         stage('Artefact') {
             steps {
                 script {
-                    def Artefacts = ['catalog.yaml', 'helm', 'helmi', 'kubectl']
+                    def Artefacts = ['catalog.yaml', 'helm', 'helmi']
                     helmiImage.inside {
                         for (int i = 0; i < Artefacts.size(); ++i) {
                             sh "cp -rf /app/${Artefacts[i]} ${WORKSPACE}"
