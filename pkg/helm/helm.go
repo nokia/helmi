@@ -6,7 +6,9 @@ import (
 	"strings"
 	"strconv"
 	"os/exec"
-	"github.com/kylelemons/go-gypsy/yaml"
+	"encoding/json"
+	"github.com/ghodss/yaml"
+	"github.com/jeremywohl/flatten"
 	"time"
 	"os"
 	"errors"
@@ -91,13 +93,38 @@ func GetValues(release string) (map[string]string, error) {
 		return nil, err
 	}
 
-	node, err := yaml.Parse(bytes.NewReader(output))
+	jsonValues, err := yaml.YAMLToJSON(output)
 
 	if err != nil {
 		return nil, err
 	}
 
-	properties := readYamlProperties(node, "")
+	jsonValuesFlatten, err := flatten.FlattenString(string(jsonValues), "", flatten.DotStyle)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var values map[string]interface{}
+	err = json.Unmarshal([]byte(jsonValuesFlatten), &values)
+
+	if err != nil {
+		return nil, err
+	}
+
+	properties := map[string]string{}
+
+	for k, v := range values {
+		switch value := v.(type) {
+		case string:
+			properties[k] = value
+		case bool:
+			properties[k] = strconv.FormatBool(value)
+		case int:
+			properties[k] = strconv.Itoa(value)
+		}
+	}
+
 	return properties, err
 }
 
@@ -263,30 +290,4 @@ func GetStatus(release string) (Status, error) {
 	}
 
 	return status, err
-}
-
-func readYamlProperties(node yaml.Node, prefix string) map[string]string {
-	values := map[string]string{}
-
-	switch n := node.(type) {
-	case yaml.Map:
-		for mapKey, mapNode := range n {
-			nodeName := prefix
-
-			if len(nodeName) > 0 {
-				nodeName += "."
-			}
-
-			nodeName += mapKey
-
-			for key, value := range readYamlProperties(mapNode, nodeName) {
-				values[key] = value
-			}
-		}
-	case yaml.Scalar:
-		value := n.String()
-		values[prefix] = value
-	}
-
-	return values
 }
