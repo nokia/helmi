@@ -22,21 +22,25 @@
 
 
 [[constraint]]
+  name = "code.cloudfoundry.org/lager"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/drewolson/testflight"
+  version = "1.0.0"
+
+[[constraint]]
   name = "github.com/gorilla/mux"
-  version = "1.4.0"
+  version = "1.6.0"
+
+[[constraint]]
+  name = "github.com/onsi/ginkgo"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/onsi/gomega"
+  branch = "master"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/jmoiron/jsonq"
-
-[[constraint]]
-  name = "github.com/satori/go.uuid"
-  version = "1.1.0"
-
-[[constraint]]
-  branch = "v2"
-  name = "gopkg.in/yaml.v2"
-
-[[constraint]]
-  name = "github.com/pivotal-cf/brokerapi"
-  version = "2.0.0"
+  name = "github.com/pborman/uuid"
