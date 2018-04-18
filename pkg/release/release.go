@@ -15,7 +15,7 @@ import (
 	"reflect"
 )
 
-const lookupRegex = `\{\{\s*lookup\s*\(\s*'(?P<type>[\w]+)'\s*,\s*'(?P<path>[\w/:]+)'\s*\)\s*\}\}`
+const lookupRegex = `\{\{\s*lookup\s*\(\s*'(?P<type>[\w]+)'\s*,\s*'(?P<path>[\w/:.]+)'\s*\)\s*\}\}`
 const lookupRegexType = "type"
 const lookupRegexPath = "path"
 

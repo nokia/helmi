@@ -3,7 +3,7 @@
   _name: mariadb
   description: "MariaDB as a Service"
   chart: stable/mariadb
-  chart-version: 1.0.7
+  chart-version: 3.0.3
   chart-values:
     mariadbUser: "{{ lookup('username', 'mariadbUser') }}"
     mariadbPassword: "{{ lookup('password', 'mariadbPassword') }}"
@@ -30,7 +30,7 @@
   _name: minio
   description: "S3 Object Store as a Service"
   chart: stable/minio
-  chart-version: 0.3.0
+  chart-version: 1.1.1
   chart-values:
     mode: "standalone"
     accessKey: "AKIAIOSFODNN7EXAMPLE"
@@ -57,14 +57,15 @@
   _name: "rabbitmq"
   description: "RabbitMQ as a Service"
   chart: stable/rabbitmq
-  chart-version: 0.6.8
+  chart-version: 0.7.5
   chart-values:
-    rabbitmqUsername: "{{ lookup('username', 'rabbitmqUsername') }}"
-    rabbitmqPassword: "{{ lookup('password', 'rabbitmqPassword') }}"
+    rbacEnabled: true
+    rabbitmq.username: "{{ lookup('username', 'rabbitmqUsername') }}"
+    rabbitmq.password: "{{ lookup('password', 'rabbitmqPassword') }}"
   user-credentials:
-    uri: "amqp://{{ lookup('username', 'rabbitmqUsername') }}:{{ lookup('password', 'rabbitmqPassword') }}@{{ lookup('release', 'name') }}-rabbitmq.{{ lookup('release', 'namespace') }}.svc.cluster.local:{{ lookup('cluster', 'port:5672') }}/"
-    username: "{{ lookup('username', 'rabbitmqUsername') }}"
-    password: "{{ lookup('password', 'rabbitmqPassword') }}"
+    uri: "amqp://{{ lookup('username', 'rabbitmq.username') }}:{{ lookup('password', 'rabbitmq.password') }}@{{ lookup('release', 'name') }}-rabbitmq.{{ lookup('release', 'namespace') }}.svc.cluster.local:{{ lookup('cluster', 'port:5672') }}/"
+    username: "{{ lookup('username', 'rabbitmq.username') }}"
+    password: "{{ lookup('password', 'rabbitmq.password') }}"
     hostname: "{{ lookup('release', 'name') }}-rabbitmq.{{ lookup('release', 'namespace') }}.svc.cluster.local"
     port: "{{ lookup('cluster', 'port:5672') }}"
     vhost: ""
@@ -108,12 +109,12 @@
   _name: "redis"
   description: "Redis as a Service"
   chart: stable/redis
-  chart-version: 0.9.0
+  chart-version: 3.0.2
   chart-values:
-    redisPassword: "{{ lookup('password', 'redisPassword') }}"
-  user-credentials:
-    uri: "redis://:{{ lookup('password', 'redisPassword') }}@{{ lookup('release', 'name') }}-redis.{{ lookup('release', 'namespace') }}.svc.cluster.local:{{ lookup('cluster', 'port') }}"
     password: "{{ lookup('password', 'redisPassword') }}"
+  user-credentials:
+    uri: "redis://:{{ lookup('password', 'password') }}@{{ lookup('release', 'name') }}-redis.{{ lookup('release', 'namespace') }}.svc.cluster.local:{{ lookup('cluster', 'port') }}"
+    password: "{{ lookup('password', 'password') }}"
     hostname: "{{ lookup('cluster', 'address') }}"
     port: "{{ lookup('cluster', 'port') }}"
   plans:
@@ -122,8 +123,8 @@
     _name: free
     description: "Free Redis Instance"
     chart-values:
-      persistence.size: 8Gi
-      persistence.storageClass: local-storage
+      master.persistence.size: 8Gi
+      master.persistence.storageClass: local-storage
 -
   _id: 201cb950-e640-4453-9d91-4708ea0a1342
   _name: "cassandra"
