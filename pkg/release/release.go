@@ -15,7 +15,7 @@ import (
 	"reflect"
 )
 
-const lookupRegex = `\{\{\s*lookup\s*\(\s*'(?P<type>[\w]+)'\s*,\s*'(?P<path>[\w/:]+)'\s*\)\s*\}\}`
+const lookupRegex = `\{\{\s*lookup\s*\(\s*'(?P<type>[\w]+)'\s*,\s*'(?P<path>[\w/:.]+)'\s*\)\s*\}\}`
 const lookupRegexType = "type"
 const lookupRegexPath = "path"
 
@@ -416,7 +416,17 @@ func getUserCredentials(service catalog.CatalogService, plan catalog.CatalogPlan
 					}
 				}
 
-				return portParts[1]
+				for clusterPort, nodePort := range helmStatus.ClusterPorts {
+					if len(portParts) == 1 || strings.EqualFold(strconv.Itoa(clusterPort), portParts[1]) {
+						return strconv.Itoa(nodePort)
+					}
+				}
+
+				if len(portParts) > 0 {
+					return portParts[0]
+				}
+
+				return "0"
 			}
 
 			// single host
