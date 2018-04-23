@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strings"
 
@@ -12,7 +13,6 @@ import (
 
 	"github.com/monostream/helmi/pkg/catalog"
 	"github.com/monostream/helmi/pkg/release"
-	"log"
 )
 
 type Config struct {
@@ -41,7 +41,7 @@ func NewBroker(catalog catalog.Catalog, config Config, logger lager.Logger) *Bro
 	liveness := b.router.HandleFunc("/liveness", livenessHandler).Methods(http.MethodGet)
 
 	// list of routes which do not require authentication
-	noAuthRequired := map[*mux.Route]bool{
+	noAuthRequired := skipAuth {
 		liveness: true,
 	}
 
@@ -187,7 +187,9 @@ func (b *Broker) Update(ctx context.Context, instanceID string, details brokerap
 	return brokerapi.UpdateServiceSpec{}, brokerapi.ErrPlanChangeNotSupported
 }
 
-func authHandler(config Config, noAuthRequired map[*mux.Route]bool) mux.MiddlewareFunc {
+type skipAuth map[*mux.Route]bool
+
+func authHandler(config Config, noAuthRequired skipAuth) mux.MiddlewareFunc {
 	validCredentials := func(r *http.Request) bool {
 		// disable authentication if configuration variables not set
 		if config.Username == "" || config.Password == "" {
