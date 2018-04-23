@@ -2,20 +2,38 @@ package main
 
 import (
 	"os"
-	"path/filepath"
+	"github.com/monostream/helmi/pkg/broker"
+	"code.cloudfoundry.org/lager"
+	"github.com/monostream/helmi/pkg/catalog"
+	"log"
 )
 
 func main() {
-	a := App{}
+	logger := lager.NewLogger("helmi")
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+	logger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
 
-	path, _ := filepath.Abs("./catalog.yaml")
+	var catalog catalog.Catalog
+	catalog.Parse("./catalog.yaml")
 
-	port := os.Getenv("PORT")
-
-	if len(port) == 0 {
-		port = "5000"
+	addr := ":5000"
+	if port, ok := os.LookupEnv("PORT"); ok {
+		addr = ":" + port
 	}
 
-	a.Initialize(path)
-	a.Run(":" + port)
+	user := os.Getenv("USERNAME")
+	pass := os.Getenv("PASSWORD")
+
+	if user == "" || pass == "" {
+		log.Println("Username and/or password not specified, authentication will be disabled!")
+	}
+
+	config := broker.Config{
+		Username: user,
+		Password: pass,
+		Address: addr,
+	}
+
+	b := broker.NewBroker(catalog, config, logger)
+	b.Run()
 }

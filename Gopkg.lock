@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "code.cloudfoundry.org/lager"
+  packages = ["."]
+  revision = "25ee72f227fe10c5671d8a99d05a2faf388ccfeb"
+
+[[projects]]
   name = "github.com/ghodss/yaml"
   packages = ["."]
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
@@ -38,10 +44,13 @@
   revision = "e874b168d07ecc7808bc950a17998a8aa3141d82"
 
 [[projects]]
-  name = "github.com/rs/cors"
-  packages = ["."]
-  revision = "feef513b9575b32f84bafa580aad89b011259019"
-  version = "v1.3.0"
+  name = "github.com/pivotal-cf/brokerapi"
+  packages = [
+    ".",
+    "auth"
+  ]
+  revision = "b763fb58cdae010fb90a94387db218c95967f0d5"
+  version = "v2.0.0"
 
 [[projects]]
   name = "github.com/satori/go.uuid"
@@ -83,6 +92,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a3687dd9e3281edfe34e63f1f69f9059d5a47c329c6200c63087ece477e570ae"
+  inputs-digest = "28cfdf06e167e4b64649d99078ee7ac8da224f6995948c663a64726269dd0abb"
   solver-name = "gps-cdcl"
   solver-version = 1
