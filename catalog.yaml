@@ -130,7 +130,7 @@
   _name: "cassandra"
   description: "Cassandra as a Service"
   chart: monostream/cassandra
-  chart-version: 0.2.7
+  chart-version: 0.2.8
   chart-values:
     cassandraUsername: "{{ lookup('username', 'cassandraUsername') }}"
     cassandraPassword: "{{ lookup('password', 'cassandraPassword') }}"
@@ -165,7 +165,7 @@
   _name: "muescheli"
   description: "Virusscan as a Service"
   chart: monostream/muescheli
-  chart-version: 0.1.5
+  chart-version: 0.1.6
   chart-values:
     environment.no_proxy: "{{ lookup('env', 'no_proxy') }}"
     environment.http_proxy: "{{ lookup('env', 'http_proxy') }}"
