@@ -1,12 +1,14 @@
 package kubectl
 
 import (
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/kubernetes"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"os"
 	"path/filepath"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type Node struct {
@@ -45,14 +47,14 @@ func createClient() (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(config)
 }
 
-func GetNodes() ([] Node, error) {
+func GetNodes() ([]Node, error) {
 	clientset, err := createClient()
 
 	if err != nil {
 		return nil, err
 	}
 
-	var nodes [] Node
+	var nodes []Node
 
 	items, err := clientset.CoreV1().Nodes().List(metav1.ListOptions{})
 
