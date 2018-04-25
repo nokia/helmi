@@ -15,9 +15,6 @@ RUN cp /go/src/github.com/monostream/helmi/helmi .
 RUN cp /go/src/github.com/monostream/helmi/catalog.yaml .
 RUN rm -r /go/src/
 
-# Download kubectl 1.7.12
-RUN wget -nv https://storage.googleapis.com/kubernetes-release/release/v1.7.12/bin/linux/amd64/kubectl && chmod 755 kubectl
-
 # Download helm 2.8.2
 RUN wget -nv -O- https://storage.googleapis.com/kubernetes-helm/helm-v2.8.2-linux-amd64.tar.gz | tar --strip-components=1 -zxf -
 
