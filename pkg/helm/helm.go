@@ -291,3 +291,15 @@ func GetStatus(release string) (Status, error) {
 
 	return status, err
 }
+
+func IsReady() error {
+	cmd := exec.Command("helm", "list", "--short")
+	stderr := new(strings.Builder)
+	cmd.Stderr = stderr
+	err := cmd.Run()
+	if err != nil {
+		msg := strings.TrimSpace(stderr.String())
+		err = errors.New(msg)
+	}
+	return err
+}
