@@ -294,7 +294,7 @@ func GetStatus(release string) (Status, error) {
 
 func IsReady() error {
 	cmd := exec.Command("helm", "list", "--short")
-	stderr := new(strings.Builder)
+	stderr := new(bytes.Buffer)
 	cmd.Stderr = stderr
 	err := cmd.Run()
 	if _, exited := err.(*exec.ExitError); exited {
