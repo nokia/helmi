@@ -11,7 +11,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi"
 
+	"encoding/json"
 	"github.com/monostream/helmi/pkg/catalog"
+	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/release"
 )
 
@@ -38,11 +40,13 @@ func NewBroker(catalog catalog.Catalog, config Config, logger lager.Logger) *Bro
 	}
 
 	brokerapi.AttachRoutes(b.router, b, logger)
-	liveness := b.router.HandleFunc("/liveness", livenessHandler).Methods(http.MethodGet)
+	liveness := b.router.HandleFunc("/liveness", b.livenessHandler).Methods(http.MethodGet)
+	readiness := b.router.HandleFunc("/readiness", b.readinessHandler).Methods(http.MethodGet)
 
 	// list of routes which do not require authentication
-	noAuthRequired := skipAuth {
-		liveness: true,
+	noAuthRequired := skipAuth{
+		liveness:  true,
+		readiness: true,
 	}
 
 	b.router.Use(authHandler(config, noAuthRequired))
@@ -63,10 +67,17 @@ func (b *Broker) Run() {
 }
 
 // if requests to this handler fail, Kubernetes will restart the container
-func livenessHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("{}"))
+func (b *Broker) livenessHandler(w http.ResponseWriter, r *http.Request) {
+	b.writeJSONResponse(w, http.StatusOK, struct{}{})
+}
+
+func (b *Broker) readinessHandler(w http.ResponseWriter, r *http.Request) {
+	err := helm.IsReady()
+	if err != nil {
+		b.writeJSONError(w, err)
+		return
+	}
+	b.writeJSONResponse(w, http.StatusOK, struct{}{})
 }
 
 func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
@@ -217,4 +228,20 @@ func authHandler(config Config, noAuthRequired skipAuth) mux.MiddlewareFunc {
 			handler.ServeHTTP(w, r)
 		})
 	}
+}
+
+func (b *Broker) writeJSONResponse(w http.ResponseWriter, status int, response interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	encoder := json.NewEncoder(w)
+	err := encoder.Encode(response)
+	if err != nil {
+		b.logger.Error("encoding response", err, lager.Data{"status": status, "response": response})
+	}
+}
+
+func (b *Broker) writeJSONError(w http.ResponseWriter, err error) {
+	b.writeJSONResponse(w, http.StatusInternalServerError, brokerapi.ErrorResponse{
+		Description: err.Error(),
+	})
 }
