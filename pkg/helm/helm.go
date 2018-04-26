@@ -297,7 +297,7 @@ func IsReady() error {
 	stderr := new(strings.Builder)
 	cmd.Stderr = stderr
 	err := cmd.Run()
-	if err != nil {
+	if _, exited := err.(*exec.ExitError); exited {
 		msg := strings.TrimSpace(stderr.String())
 		err = errors.New(msg)
 	}
