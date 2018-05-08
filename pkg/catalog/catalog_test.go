@@ -1,38 +1,161 @@
 package catalog
 
 import (
+	"github.com/monostream/helmi/pkg/kubectl"
+	"github.com/monostream/helmi/pkg/helm"
 	"testing"
 	"strconv"
 )
 
-const service string = "201cb950-e640-4453-9d91-4708ea0a1342"
-const plan string = "7b16d6aa-260a-4b8d-b12c-464d2cedb9d0"
+var def = []byte(`---
+service:
+  _id: 12345
+  _name: "test_service"
+  description: "service_description"
+  chart: service_chart
+  chart-version: 1.2.3
+  plans:
+  -
+    _id: 67890
+    _name: test_plan
+    description: "plan_description"
+    chart: "plan_chart"
+    chart-version: "4.5.6"
+    chart-values:
+      baz: 1
+---
+chart-values:
+    foo: "bar"
+    password: "{{ generatePassword }}"
+---
+user-credentials:
+    key: "{{ .Values.foo }}"
+    addr: "{{ .Cluster.Address }}"
+    hostname: "{{ .Cluster.Hostname }}"
+    port: "{{ .Cluster.Port }}"
+    translated_port: "{{ .Cluster.Port 80 }}"
+    fallback_port: "{{ .Cluster.Port 8080 }}"
+    namespace: "{{ .Release.Namespace }}"
+`)
 
-var c = Catalog{ }
+var nodes = []kubectl.Node{
+	{
+		Name: "test_node",
 
-func init() {
-	c.Parse("../../catalog.yaml")
+		Hostname:   "test_hostname",
+		InternalIP: "1.1.1.1",
+		ExternalIP: "2.2.2.2",
+	},
 }
 
-func red(msg string) (string){
+var status = helm.Status{
+	Name:       "test_release",
+	Namespace:  "test_namespace",
+	IsFailed:   false,
+	IsDeployed: true,
+
+	DesiredNodes:   1,
+	AvailableNodes: 1,
+
+	NodePorts: map[int]int{
+		80: 30001,
+	},
+}
+
+func red(msg string) string {
 	return "\033[31m" + msg + "\033[39m\n\n"
 }
 
-func Test_GetService(t *testing.T) {
-	cs, _ := c.GetService(service)
+func Test_CatalogDir(t *testing.T) {
+	_, err := ParseDir("../../catalog")
+	if err != nil {
+		t.Error(red(err.Error()))
+	}
+}
 
-	if cs.Name != "cassandra" {
+func getCatalog(t *testing.T) Catalog {
+	c := Catalog{
+		Services: make(map[string]Service),
+	}
+	err := c.parseServiceDefinition(def, "<no file>")
+	if err != nil {
+		t.Error(red(err.Error()))
+	}
+
+	return c
+}
+
+func Test_GetService(t *testing.T) {
+	c := getCatalog(t)
+	cs := c.Service("12345")
+	if cs.Name != "test_service" {
 		t.Error(red("service name is wrong"))
 	}
 }
 
 func Test_GetServicePlan(t *testing.T) {
-	csp, _ := c.GetServicePlan(service, plan)
+	c := getCatalog(t)
+	csp := c.Service("12345").Plan("67890")
 
-	if csp.Name != "dev" {
+	if csp.Name != "test_plan" {
 		t.Error(red("service plan is wrong"))
 	}
-	if value, _ := strconv.Atoi(csp.ChartValues["replicaCount"]); value != 1 {
+	if value, _ := strconv.Atoi(csp.ChartValues["baz"]); value != 1 {
 		t.Error(red("chart value in plan is wrong"))
+	}
+}
+
+func Test_GetChartValues(t *testing.T) {
+	c := getCatalog(t)
+	s := c.Service("12345")
+	p := s.Plan("67890")
+	values, err := s.ChartValues(p)
+	if err != nil {
+		t.Error(red(err.Error()))
+	}
+
+	if values["foo"] != "bar" {
+		t.Error(red("incorrect helm value returned"))
+	}
+	if len(values["password"]) != 32 {
+		t.Error(red("incorrect helm value returned"))
+	}
+}
+
+func Test_GetUserCredentials(t *testing.T) {
+	c := getCatalog(t)
+	s := c.Service("12345")
+	p := s.Plan("67890")
+
+	values := map[string]string{
+		"foo": "bar",
+		"password": "s3cr3t",
+	}
+
+	credentials, err := s.UserCredentials(p, nodes, status, values)
+	if err != nil {
+		t.Error(red(err.Error()))
+	}
+
+	if credentials["key"] != "bar" {
+		t.Error(red("incorrect lookup value returned"))
+	}
+	if credentials["addr"] != "2.2.2.2" {
+		t.Error(red("incorrect address value returned"))
+	}
+	if credentials["hostname"] != "test_hostname" {
+		t.Error(red("incorrect hostname value returned"))
+	}
+	if credentials["port"] != "30001" {
+		t.Error(red("incorrect port value returned"))
+	}
+	if credentials["translated_port"] != "30001" {
+		t.Error(red("incorrect port value returned"))
+	}
+	if credentials["fallback_port"] != "8080" {
+		t.Error(red("incorrect port value returned"))
+	}
+	if credentials["namespace"] != "test_namespace" {
+		t.Error(red("incorrect release value returned"))
 	}
 }
