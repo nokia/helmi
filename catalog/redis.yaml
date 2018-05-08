@@ -1,0 +1,24 @@
+---
+service:
+  _id: c26e6c7a-fe17-4568-ac4c-46545ab1d178
+  _name: "redis"
+  description: "Redis as a Service"
+  chart: stable/redis
+  chart-version: 3.0.2
+  plans:
+  -
+    _id: 381c8dd1-676b-4d1f-ae00-97e8304f966f
+    _name: free
+    description: "Free Redis Instance"
+    chart-values:
+      master.persistence.size: 8Gi
+      master.persistence.storageClass: local-storage
+---
+chart-values:
+  password: "{{ generatePassword }}"
+---
+user-credentials:
+  uri: "redis://:{{ .Values.password }}@{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.DefaultPort }}"
+  password: "{{ .Values.password }}"
+  hostname: "{{ .Cluster.Address }}"
+  port: "{{ .Cluster.Port }}"
