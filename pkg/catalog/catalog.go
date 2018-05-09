@@ -164,9 +164,19 @@ func (s *Service) ChartValues(p *Plan) (map[string]string, error) {
 	var v struct {
 		ChartValues map[string]string `yaml:"chart-values"`
 	}
+
+
 	err = yaml.Unmarshal(b.Bytes(), &v)
 	if err != nil {
 		return nil, err
+	}
+
+	if v.ChartValues == nil {
+		v.ChartValues = make(map[string]string)
+	}
+
+	for key, value := range p.ChartValues {
+		v.ChartValues[key] = value
 	}
 
 	return v.ChartValues, nil

@@ -1,10 +1,9 @@
 package catalog
 
 import (
-	"github.com/monostream/helmi/pkg/kubectl"
 	"github.com/monostream/helmi/pkg/helm"
+	"github.com/monostream/helmi/pkg/kubectl"
 	"testing"
-	"strconv"
 )
 
 var def = []byte(`---
@@ -22,7 +21,7 @@ service:
     chart: "plan_chart"
     chart-version: "4.5.6"
     chart-values:
-      baz: 1
+      baz: qux
 ---
 chart-values:
     foo: "bar"
@@ -30,6 +29,7 @@ chart-values:
 ---
 user-credentials:
     key: "{{ .Values.foo }}"
+    plan_key: "{{ .Values.baz }}"
     addr: "{{ .Cluster.Address }}"
     hostname: "{{ .Cluster.Hostname }}"
     port: "{{ .Cluster.Port }}"
@@ -100,7 +100,7 @@ func Test_GetServicePlan(t *testing.T) {
 	if csp.Name != "test_plan" {
 		t.Error(red("service plan is wrong"))
 	}
-	if value, _ := strconv.Atoi(csp.ChartValues["baz"]); value != 1 {
+	if csp.ChartValues["baz"] != "qux" {
 		t.Error(red("chart value in plan is wrong"))
 	}
 }
@@ -127,9 +127,9 @@ func Test_GetUserCredentials(t *testing.T) {
 	s := c.Service("12345")
 	p := s.Plan("67890")
 
-	values := map[string]string{
-		"foo": "bar",
-		"password": "s3cr3t",
+	values, err := s.ChartValues(p)
+	if err != nil {
+		t.Error(red(err.Error()))
 	}
 
 	credentials, err := s.UserCredentials(p, nodes, status, values)
@@ -138,6 +138,9 @@ func Test_GetUserCredentials(t *testing.T) {
 	}
 
 	if credentials["key"] != "bar" {
+		t.Error(red("incorrect lookup value returned"))
+	}
+	if credentials["plan_key"] != "qux" {
 		t.Error(red("incorrect lookup value returned"))
 	}
 	if credentials["addr"] != "2.2.2.2" {
