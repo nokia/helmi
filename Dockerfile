@@ -40,7 +40,7 @@ USER helmi
 
 # Initialize helm
 RUN helm init --client-only && \
-    helm repo add monostream http://monostream-helm.s3-eu-west-1.amazonaws.com/charts && \
+    helm repo add monostream http://helm-charts.monocloud.io && \
     helm repo update
 
 ENTRYPOINT ["/usr/local/bin/dumb-init", "--"]
