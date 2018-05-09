@@ -12,7 +12,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o helmi .
 # Copy helm artefacts
 WORKDIR /app/
 RUN cp /go/src/github.com/monostream/helmi/helmi .
-RUN cp /go/src/github.com/monostream/helmi/catalog.yaml .
+RUN cp -r /go/src/github.com/monostream/helmi/catalog .
 RUN rm -r /go/src/
 
 # Download helm 2.8.2
@@ -40,7 +40,7 @@ USER helmi
 
 # Initialize helm
 RUN helm init --client-only && \
-    helm repo add monostream http://monostream-helm.s3-eu-west-1.amazonaws.com/charts && \
+    helm repo add monostream http://helm-charts.monocloud.io && \
     helm repo update
 
 ENTRYPOINT ["/usr/local/bin/dumb-init", "--"]

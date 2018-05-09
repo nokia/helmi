@@ -1,0 +1,30 @@
+---
+service:
+  _id: ab53df4d-c279-4880-94f7-65e7d72b7834
+  _name: mariadb
+  description: "MariaDB as a Service"
+  chart: stable/mariadb
+  chart-version: 3.0.3
+  plans:
+  -
+    _id: e79306ef-4e10-4e3d-b38e-ffce88c90f59
+    _name: free
+    description: "Free MariaDB Instance"
+    chart-values:
+        persistence.size: 8Gi
+        persistence.storageClass: local-storage
+---
+chart-values:
+  mariadbUser: "{{ generateUsername }}"
+  mariadbPassword: "{{ generatePassword }}"
+  mariadbRootPassword: "{{ generatePassword }}"
+  mariadbDatabase: db
+---
+user-credentials:
+  uri: "mysql://{{ .Values.mariadbUser }}:{{ .Values.mariadbPassword }}@{{ .Release.Name }}-mariadb.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port }}/{{ .Values.mariadbDatabase }}"
+  jdbcUrl: "jdbc:mysql://{{ .Values.mariadbUser }}:{{ .Values.mariadbPassword }}@{{ .Release.Name }}-mariadb.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port }}/{{ .Values.mariadbDatabase }}?user={{ .Values.mariadbUser }}\u0026password={{ .Values.mariadbPassword }}"
+  username: "{{ .Values.mariadbUser }}"
+  password: "{{ .Values.mariadbPassword }}"
+  database: "{{ .Values.mariadbDatabase }}"
+  hostname: "{{ .Release.Name }}-mariadb.{{ .Release.Namespace }}.svc.cluster.local"
+  port: "{{ .Cluster.Port }}"

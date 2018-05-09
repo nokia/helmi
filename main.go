@@ -13,8 +13,10 @@ func main() {
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 	logger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
 
-	var catalog catalog.Catalog
-	catalog.Parse("./catalog.yaml")
+	c, err := catalog.ParseDir("./catalog")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	addr := ":5000"
 	if port, ok := os.LookupEnv("PORT"); ok {
@@ -34,6 +36,6 @@ func main() {
 		Address: addr,
 	}
 
-	b := broker.NewBroker(catalog, config, logger)
+	b := broker.NewBroker(c, config, logger)
 	b.Run()
 }

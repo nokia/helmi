@@ -1,0 +1,31 @@
+---
+service:
+  _id: 8dda5a6f-f796-4b52-806f-4129d7576d6e
+  _name: minio
+  description: "S3 Object Store as a Service"
+  chart: stable/minio
+  chart-version: 1.1.1
+  plans:
+  -
+    _id: f003f191-c250-4e85-9abd-038af629ad71
+    _name: free
+    description: "Free S3 Object Store Instance"
+    chart-values:
+      persistence.size: 8Gi
+      persistence.storageClass: local-storage
+---
+chart-values:
+  mode: "standalone"
+  accessKey: "AKIAIOSFODNN7EXAMPLE"
+  secretKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+---
+user-credentials:
+  uri: "http://{{ .Values.accessKey }}:{{ .Values.secretKey }}@{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port }}/"
+  endpoint: "{{ .Cluster.Address }}:{{ .Cluster.Port }}"
+  accessKey: "{{ .Values.accessKey }}"
+  secretKey: "{{ .Values.secretKey }}"
+  hostname: "{{ .Release.Name }}-minio.{{ .Release.Namespace }}.svc.cluster.local"
+  port: "{{ .Cluster.Port }}"
+  region: "us-west-1"
+  pathStyleAccess: true
+
