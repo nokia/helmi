@@ -18,7 +18,7 @@ chart-values:
   password: "{{ generatePassword }}"
 ---
 user-credentials:
-  uri: "redis://:{{ .Values.password }}@{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.DefaultPort }}"
+  uri: "redis://:{{ .Values.password }}@{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port }}"
   password: "{{ .Values.password }}"
   hostname: "{{ .Cluster.Address }}"
   port: "{{ .Cluster.Port }}"
