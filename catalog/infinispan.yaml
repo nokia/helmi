@@ -18,7 +18,7 @@ chart-values:
   infinispanMgmtPassword: "{{ generatePassword }}"
 ---
 user-credentials:
-  uri: "http://{{ .Values.infinispanUsername }}:{{ .Values.infinispanPassword }}@{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 8080 }}"
+  uri: "http://{{ .Values.infinispanUsername }}:{{ .Values.infinispanPassword }}@{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 8080 }}/rest"
   rest_port: "{{ .Cluster.Port 8080 }}"
   hotrod_port: "{{ .Cluster.Port 11222 }}"
   username: "{{ .Values.infinispanUsername }}"
