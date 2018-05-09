@@ -1,0 +1,27 @@
+---
+service:
+  _id: e7e941b5-3a82-4586-afcb-65d50b0bc0c7
+  _name: "infinispan"
+  description: "Infinispan as a Service"
+  chart: monostream/infinispan
+  chart-version: 9.2.2
+  plans:
+  -
+    _id: 2f1b33f3-b0b7-48a6-b829-fe29117ae904
+    _name: free
+    description: "Free Infinispan Instance"
+---
+chart-values:
+  infinispanUsername: "{{ generateUsername }}"
+  infinispanPassword: "{{ generatePassword }}"
+  infinispanMgmtUsername: "{{ generateUsername }}"
+  infinispanMgmtPassword: "{{ generatePassword }}"
+---
+user-credentials:
+  uri: "http://:{{ .Values.infinispanUsername }}:{{ .Values.infinispanPassword}}@{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 8080 }}"
+  rest_port: "{{ .Cluster.Port 8080 }}"
+  hotrod_port: "{{ .Cluster.Port 11222 }}"
+  username: "{{ .Values.infinispanUsername }}"
+  password: "{{ .Values.infinispanPassword }}"
+  mgmt_username: "{{ .Values.infinispanMgmtUsername }}"
+  mgmt_password: "{{ .Values.infinispanMgmtPassword }}"
