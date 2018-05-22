@@ -6,9 +6,7 @@ import (
 	"strings"
 	"strconv"
 	"os/exec"
-	"encoding/json"
 	"github.com/ghodss/yaml"
-	"github.com/jeremywohl/flatten"
 	"time"
 	"os"
 	"errors"
@@ -85,47 +83,20 @@ func Delete(release string) error {
 	return nil
 }
 
-func GetValues(release string) (map[string]string, error) {
+func GetValues(release string) (map[string]interface{}, error) {
 	cmd := exec.Command("helm", "get", "values", release, "--all")
 	output, err := cmd.CombinedOutput()
-
-	if err != nil {
-		return nil, err
-	}
-
-	jsonValues, err := yaml.YAMLToJSON(output)
-
-	if err != nil {
-		return nil, err
-	}
-
-	jsonValuesFlatten, err := flatten.FlattenString(string(jsonValues), "", flatten.DotStyle)
-
 	if err != nil {
 		return nil, err
 	}
 
 	var values map[string]interface{}
-	err = json.Unmarshal([]byte(jsonValuesFlatten), &values)
-
+	err = yaml.Unmarshal(output, &values)
 	if err != nil {
 		return nil, err
 	}
 
-	properties := map[string]string{}
-
-	for k, v := range values {
-		switch value := v.(type) {
-		case string:
-			properties[k] = value
-		case bool:
-			properties[k] = strconv.FormatBool(value)
-		case int:
-			properties[k] = strconv.Itoa(value)
-		}
-	}
-
-	return properties, err
+	return values, err
 }
 
 func GetStatus(release string) (Status, error) {

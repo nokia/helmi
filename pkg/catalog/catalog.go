@@ -190,7 +190,7 @@ type credentialVars struct {
 	Cluster clusterVars
 }
 
-type valueVars map[string]string
+type valueVars map[string]interface{}
 
 type releaseVars struct {
 	Name      string
@@ -254,7 +254,7 @@ func extractHostname(kubernetesNodes []kubectl.Node) string {
 	return ""
 }
 
-func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, helmStatus helm.Status, values map[string]string) (map[string]interface{}, error) {
+func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, helmStatus helm.Status, values map[string]interface{}) (map[string]interface{}, error) {
 	env := credentialVars{
 		Service: s,
 		Plan:    plan,

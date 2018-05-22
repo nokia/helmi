@@ -145,12 +145,6 @@
   revision = "6633656539c1639d9d78127b7d47c622b5d7b6dc"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/jeremywohl/flatten"
-  packages = ["."]
-  revision = "111a2b21b82969ab9a71f61740c3bb09a86ca1f9"
-
-[[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "13f86432b882000a51c6e610c620974462691a97"
@@ -428,6 +422,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "23dca42498c6fe0b06e0f861cbcf29626f3a8df5efdc976199a0db571503569b"
+  inputs-digest = "748a6d782c5203de1d6440b5191035c497055bf8f2db32dd1ab888c49c953a3c"
   solver-name = "gps-cdcl"
   solver-version = 1
