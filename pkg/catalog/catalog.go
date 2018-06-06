@@ -165,7 +165,6 @@ func (s *Service) ChartValues(p *Plan) (map[string]string, error) {
 		ChartValues map[string]string `yaml:"chart-values"`
 	}
 
-
 	err = yaml.Unmarshal(b.Bytes(), &v)
 	if err != nil {
 		return nil, err
@@ -188,6 +187,7 @@ type credentialVars struct {
 	Values  valueVars
 	Release releaseVars
 	Cluster clusterVars
+	Secrets map[string]string
 }
 
 type valueVars map[string]interface{}
@@ -255,6 +255,13 @@ func extractHostname(kubernetesNodes []kubectl.Node) string {
 }
 
 func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, helmStatus helm.Status, values map[string]interface{}) (map[string]interface{}, error) {
+
+	// quick poc to retrieve secrets
+	secrets, err := kubectl.GetSecret("secret-client-" + helmStatus.Name + "-datagrid", helmStatus.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
 	env := credentialVars{
 		Service: s,
 		Plan:    plan,
@@ -268,10 +275,11 @@ func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, he
 			Hostname:   extractHostname(kubernetesNodes),
 			helmStatus: helmStatus,
 		},
+		Secrets: secrets,
 	}
 
 	b := new(bytes.Buffer)
-	err := s.credentialsTemplate.Execute(b, env)
+	err = s.credentialsTemplate.Execute(b, env)
 	if err != nil {
 		return nil, err
 	}

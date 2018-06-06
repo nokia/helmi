@@ -1,0 +1,32 @@
+---
+service:
+  _id: 0879e46a-6dcb-4da8-bb0d-af93bd8d450d
+  _name: "datagrid"
+  description: "Datagrid as a Service"
+  chart: monostream/datagrid
+  chart-version: 7.2.0
+  plans:
+  -
+    _id: 22c6a797-f205-41d0-b887-d1324b4599bc
+    _name: free
+    description: "Free Datagrid Instance"
+---
+chart-values:
+  datagridUsername: "{{ generateUsername }}"
+  datagridPassword: "{{ generatePassword }}"
+  datagridMgmtUsername: "{{ generateUsername }}"
+  datagridMgmtPassword: "{{ generatePassword }}"
+  kube.auth: false
+---
+user-credentials:
+  uri: "http://{{ .Values.datagridUsername }}:{{ .Values.datagridPassword }}@{{ .Release.Name }}-datagrid.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 8080 }}/rest"
+  hostname: "{{ .Release.Name }}-datagrid.{{ .Release.Namespace }}.svc.cluster.local"
+  rest_port: "{{ .Cluster.Port 8080 }}"
+  hotrod_port: "{{ .Cluster.Port 11222 }}"
+  username: "{{ .Values.datagridUsername }}"
+  password: "{{ .Values.datagridPassword }}"
+  mgmt_username: "{{ .Values.datagridMgmtUsername }}"
+  mgmt_password: "{{ .Values.datagridMgmtPassword }}"
+  {{ range $k, $v := .Secrets }}
+  {{ $k }}: "{{ $v }}"
+  {{ end }}

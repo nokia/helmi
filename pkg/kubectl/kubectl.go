@@ -9,6 +9,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"encoding/base64"
 )
 
 type Node struct {
@@ -85,4 +86,27 @@ func GetNodes() ([]Node, error) {
 	}
 
 	return nodes, nil
+}
+
+func GetSecret(name string, namespace string) (map[string]string, error) {
+	clientset, err := createClient()
+
+	if err != nil {
+		return nil, err
+	}
+
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
+
+	var secrets = make(map[string]string)
+	for k, v := range secret.Data {
+		//secrets[string([]byte(k[:]))] = string([]byte(v[:]))
+		// keep the secret base64 encoded (binary secret safe)
+		secrets[string([]byte(k[:]))] = base64.StdEncoding.EncodeToString(v)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return secrets, nil
 }
