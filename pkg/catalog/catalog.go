@@ -259,7 +259,7 @@ func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, he
 	// quick poc to retrieve secrets
 	secrets, err := kubectl.GetSecret("secret-client-" + helmStatus.Name + "-datagrid", helmStatus.Namespace)
 	if err != nil {
-		return nil, err
+		secrets = make(map[string]string)
 	}
 
 	env := credentialVars{
