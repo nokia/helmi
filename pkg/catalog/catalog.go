@@ -44,9 +44,9 @@ type Plan struct {
 
 	Chart        string            `yaml:"chart"`
 	ChartVersion string            `yaml:"chart-version"`
-	ChartValues  map[string]string `yaml:"chart-values"`
+	ChartValues  map[interface{}]interface{} `yaml:"chart-values"`
 
-	UserCredentials map[string]interface{} `yaml:"user-credentials"`
+	UserCredentials map[interface{}]interface{} `yaml:"user-credentials"`
 }
 
 // Parses all `.yaml` and `.yml` files in the specified path as service definitions
@@ -148,12 +148,48 @@ func templateFuncMap() template.FuncMap {
 	return f
 }
 
+// Note: yaml.v3 will make this unnecessary by exposing a default map type for unmarshalling:
+// https://github.com/go-yaml/yaml/issues/139
+func toStringMap(m map[interface{}]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range m {
+		// convert key to string
+		k := fmt.Sprintf("%v", k)
+		if valMap, ok := v.(map[interface{}]interface{}); ok {
+			// convert values recursively
+			v = toStringMap(valMap)
+		}
+		result[k] = v
+	}
+
+	return result
+}
+
+// Merges a list of unmarshalled yaml maps into a single string-index map.
+// Conflicting values are merged recursively if they are maps, and overwritten if they are of any other type.
+func mergeMaps(maps ...map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for _, m := range maps {
+		for k, v := range m {
+			valMap, valIsMap := v.(map[string]interface{})
+			resMap, resIsMap := result[k].(map[string]interface{})
+
+			if valIsMap && resIsMap {
+				v = mergeMaps(resMap, valMap)
+			}
+
+			result[k] = v
+		}
+	}
+	return result
+}
+
 type chartValueVars struct {
 	*Service
 	*Plan
 }
 
-func (s *Service) ChartValues(p *Plan) (map[string]string, error) {
+func (s *Service) ChartValues(p *Plan) (map[string]interface{}, error) {
 	b := new(bytes.Buffer)
 	data := chartValueVars{s, p}
 	err := s.valuesTemplate.Execute(b, data)
@@ -162,24 +198,19 @@ func (s *Service) ChartValues(p *Plan) (map[string]string, error) {
 	}
 
 	var v struct {
-		ChartValues map[string]string `yaml:"chart-values"`
+		ChartValues map[interface{}]interface{} `yaml:"chart-values"`
 	}
-
 
 	err = yaml.Unmarshal(b.Bytes(), &v)
 	if err != nil {
 		return nil, err
 	}
 
-	if v.ChartValues == nil {
-		v.ChartValues = make(map[string]string)
-	}
+	serviceValues := toStringMap(v.ChartValues)
+	planValues := toStringMap(p.ChartValues)
+	res := mergeMaps(serviceValues, planValues)
 
-	for key, value := range p.ChartValues {
-		v.ChartValues[key] = value
-	}
-
-	return v.ChartValues, nil
+	return res, nil
 }
 
 type credentialVars struct {
@@ -277,12 +308,14 @@ func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, he
 	}
 
 	var v struct {
-		UserCredentials map[string]interface{} `yaml:"user-credentials"`
+		UserCredentials map[interface{}]interface{} `yaml:"user-credentials"`
 	}
 	err = yaml.Unmarshal(b.Bytes(), &v)
 	if err != nil {
 		return nil, err
 	}
 
-	return v.UserCredentials, nil
+	serviceCreds := toStringMap(v.UserCredentials)
+	planCreds := toStringMap(plan.UserCredentials)
+	return mergeMaps(serviceCreds, planCreds), nil
 }
