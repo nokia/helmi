@@ -11,13 +11,15 @@ service:
     _name: free
     description: "Free RabbitMQ Instance"
     chart-values:
-      persistence.size: 8Gi
-      persistence.storageClass: local-storage
+      persistence:
+        size: 8Gi
+        storageClass: local-storage
 ---
 chart-values:
   rbacEnabled: true
-  rabbitmq.username: "{{ generateUsername }}"
-  rabbitmq.password: "{{ generatePassword }}"
+  rabbitmq:
+    username: "{{ generateUsername }}"
+    password: "{{ generatePassword }}"
 ---
 user-credentials:
   uri: "amqp://{{ .Values.rabbitmq.username }}:{{ .Values.rabbitmq.password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 5672 }}/"
