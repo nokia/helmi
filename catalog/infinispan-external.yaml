@@ -4,7 +4,7 @@ service:
   _name: "infinispan-external"
   description: "Infinispan as a ExternalIP Service"
   chart: monostream/infinispan
-  chart-version: 9.2.2
+  chart-version: 9.2.3
   plans:
   -
     _id: 188102dc-ec03-462d-b8db-a98c670ff7ea

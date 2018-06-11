@@ -4,7 +4,7 @@ service:
   _name: "infinispan"
   description: "Infinispan as a Service"
   chart: monostream/infinispan
-  chart-version: 9.2.2
+  chart-version: 9.2.3
   plans:
   -
     _id: 2f1b33f3-b0b7-48a6-b829-fe29117ae904
@@ -18,7 +18,8 @@ chart-values:
   infinispanMgmtPassword: "{{ generatePassword }}"
 ---
 user-credentials:
-  uri: "http://{{ .Values.infinispanUsername }}:{{ .Values.infinispanPassword }}@{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 8080 }}/rest"
+  uri: "http://{{ .Values.infinispanUsername }}:{{ .Values.infinispanPassword }}@{{ .Release.Name }}-infinispan.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 8080 }}/rest"
+  hostname: "{{ .Release.Name }}-infinispan.{{ .Release.Namespace }}.svc.cluster.local"
   rest_port: "{{ .Cluster.Port 8080 }}"
   hotrod_port: "{{ .Cluster.Port 11222 }}"
   username: "{{ .Values.infinispanUsername }}"
