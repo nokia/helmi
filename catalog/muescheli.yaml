@@ -12,9 +12,10 @@ service:
     description: "Free ClamAV Rest Instance"
 ---
 chart-values:
-  environment.no_proxy: "{{ env "NO_PROXY" }}"
-  environment.http_proxy: "{{ env "HTTP_PROXY" }}"
-  environment.https_proxy: "{{ env "HTTPS_PROXY" }}"
+  environment:
+    no_proxy: "{{ env "NO_PROXY" }}"
+    http_proxy: "{{ env "HTTP_PROXY" }}"
+    https_proxy: "{{ env "HTTPS_PROXY" }}"
   muescheliUsername: "{{ generateUsername }}"
   muescheliPassword: "{{ generatePassword }}"
 ---

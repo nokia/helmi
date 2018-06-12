@@ -6,9 +6,7 @@ import (
 	"strings"
 	"strconv"
 	"os/exec"
-	"encoding/json"
-	"github.com/ghodss/yaml"
-	"github.com/jeremywohl/flatten"
+	"gopkg.in/yaml.v2"
 	"time"
 	"os"
 	"errors"
@@ -46,7 +44,7 @@ func Exists(release string) (bool, error) {
 	return false, err
 }
 
-func Install(release string, chart string, version string, values map[string]string, acceptsIncomplete bool) (error) {
+func Install(release string, chart string, version string, values map[string]interface{}, acceptsIncomplete bool) (error) {
 	arguments := [] string{}
 
 	arguments = append(arguments, "install", chart)
@@ -60,11 +58,20 @@ func Install(release string, chart string, version string, values map[string]str
 		arguments = append(arguments, "--wait")
 	}
 
-	for key, value := range values {
-		arguments = append(arguments, "--set", key+"="+strings.Replace(value, ",", "\\,", -1))
+	if len(values) > 0 {
+		arguments = append(arguments, "--values", "-")
 	}
 
 	cmd := exec.Command("helm", arguments...)
+	if len(values) > 0 {
+		// pass values as yaml on stdin
+		buf, err := yaml.Marshal(values)
+		if err != nil {
+			return err
+		}
+		cmd.Stdin = bytes.NewReader(buf)
+	}
+
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -85,47 +92,20 @@ func Delete(release string) error {
 	return nil
 }
 
-func GetValues(release string) (map[string]string, error) {
+func GetValues(release string) (map[string]interface{}, error) {
 	cmd := exec.Command("helm", "get", "values", release, "--all")
 	output, err := cmd.CombinedOutput()
-
-	if err != nil {
-		return nil, err
-	}
-
-	jsonValues, err := yaml.YAMLToJSON(output)
-
-	if err != nil {
-		return nil, err
-	}
-
-	jsonValuesFlatten, err := flatten.FlattenString(string(jsonValues), "", flatten.DotStyle)
-
 	if err != nil {
 		return nil, err
 	}
 
 	var values map[string]interface{}
-	err = json.Unmarshal([]byte(jsonValuesFlatten), &values)
-
+	err = yaml.Unmarshal(output, &values)
 	if err != nil {
 		return nil, err
 	}
 
-	properties := map[string]string{}
-
-	for k, v := range values {
-		switch value := v.(type) {
-		case string:
-			properties[k] = value
-		case bool:
-			properties[k] = strconv.FormatBool(value)
-		case int:
-			properties[k] = strconv.Itoa(value)
-		}
-	}
-
-	return properties, err
+	return values, err
 }
 
 func GetStatus(release string) (Status, error) {

@@ -12,7 +12,8 @@ service:
     description: "Free Infinispan Instance"
 ---
 chart-values:
-  service.type: "NodePort"
+  service:
+    type: "NodePort"
   infinispanUsername: "{{ generateUsername }}"
   infinispanPassword: "{{ generatePassword }}"
   infinispanMgmtUsername: "{{ generateUsername }}"

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"os"
-	"github.com/monostream/helmi/pkg/broker"
 	"code.cloudfoundry.org/lager"
+	"github.com/monostream/helmi/pkg/broker"
 	"github.com/monostream/helmi/pkg/catalog"
 	"log"
+	"os"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 	config := broker.Config{
 		Username: user,
 		Password: pass,
-		Address: addr,
+		Address:  addr,
 	}
 
 	b := broker.NewBroker(c, config, logger)
