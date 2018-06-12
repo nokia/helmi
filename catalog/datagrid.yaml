@@ -16,13 +16,19 @@ chart-values:
   datagridPassword: "{{ generatePassword }}"
   datagridMgmtUsername: "{{ generateUsername }}"
   datagridMgmtPassword: "{{ generatePassword }}"
-  kube.auth: false
-  encryption.node.enabled: true
-  encryption.node.keystore.keypass: "{{ generatePassword }}"
-  encryption.node.keystore.storepass: "{{ generatePassword }}"
-  encryption.client.enabled: false
-  encryption.client.keystore.keypass: "{{ generatePassword }}"
-  encryption.client.keystore.storepass: "{{ generatePassword }}"
+  kube:
+    auth: false
+  encryption:
+    node:
+      enabled: false
+      keystore:
+        keypass: "{{ generatePassword }}"
+        storepass: "{{ generatePassword }}"
+    client:
+      enabled: false
+      keystore:
+        keypass: "{{ generatePassword }}"
+        storepass: "{{ generatePassword }}"
 ---
 user-credentials:
   uri: "http://{{ .Values.datagridUsername }}:{{ .Values.datagridPassword }}@{{ .Release.Name }}-datagrid.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 8080 }}/rest"
@@ -33,6 +39,7 @@ user-credentials:
   password: "{{ .Values.datagridPassword }}"
   mgmt_username: "{{ .Values.datagridMgmtUsername }}"
   mgmt_password: "{{ .Values.datagridMgmtPassword }}"
-  {{ range $k, $v := .Secrets }}
-  {{ $k }}: "{{ $v }}"
-  {{ end }}
+  {{- if .Secrets }}
+  secrets:
+    {{ toYaml .Secrets | indent 4 }}
+  {{- end }}
