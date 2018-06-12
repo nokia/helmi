@@ -42,8 +42,8 @@ type Plan struct {
 	Name        string `yaml:"_name"`
 	Description string `yaml:"description"`
 
-	Chart        string            `yaml:"chart"`
-	ChartVersion string            `yaml:"chart-version"`
+	Chart        string                      `yaml:"chart"`
+	ChartVersion string                      `yaml:"chart-version"`
 	ChartValues  map[interface{}]interface{} `yaml:"chart-values"`
 
 	UserCredentials map[interface{}]interface{} `yaml:"user-credentials"`
@@ -136,12 +136,28 @@ func (s *Service) Plan(id string) *Plan {
 func templateFuncMap() template.FuncMap {
 	f := sprig.TxtFuncMap()
 
+	f["toYaml"] = func(v interface{}) string {
+		data, err := yaml.Marshal(v)
+		if err != nil {
+			return ""
+		}
+		return string(data)
+	}
+
+	f["fromYaml"] = func(str string) map[string]interface{} {
+		m := map[string]interface{}{}
+
+		if err := yaml.Unmarshal([]byte(str), &m); err != nil {
+			m["Error"] = err.Error()
+		}
+		return m
+	}
+
 	randomUuid := func() string {
 		s := uuid.NewV4().String()
 		s = strings.Replace(s, "-", "", -1)
 		return s
 	}
-
 	f["generateUsername"] = randomUuid
 	f["generatePassword"] = randomUuid
 

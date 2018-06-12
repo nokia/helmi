@@ -43,8 +43,7 @@ user-credentials:
     fallback_port: {{ .Cluster.Port 8080 }}
     namespace: "{{ .Release.Namespace }}"
     nested:
-      nested_plan: "{{ .Values.nested.from_plan }}"
-      nested_vals: "{{ .Values.nested.from_vals }}"
+{{ toYaml .Values.nested | indent 8 }}
 `)
 
 var nodes = []kubectl.Node{
@@ -171,8 +170,8 @@ func Test_GetUserCredentials(t *testing.T) {
 		"fallback_port": 8080,
 		"namespace": status.Namespace,
 		"nested": map[string]interface{} {
-			"nested_plan": "from plan",
-			"nested_vals": "from vals",
+			"from_plan": "from plan",
+			"from_vals": "from vals",
 		},
 	}
 
