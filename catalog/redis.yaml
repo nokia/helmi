@@ -11,8 +11,10 @@ service:
     _name: free
     description: "Free Redis Instance"
     chart-values:
-      master.persistence.size: 8Gi
-      master.persistence.storageClass: local-storage
+      master:
+        persistence:
+          size: 8Gi
+          storageClass: local-storage
 ---
 chart-values:
   password: "{{ generatePassword }}"

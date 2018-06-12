@@ -6,7 +6,7 @@ import (
 	"strings"
 	"strconv"
 	"os/exec"
-	"github.com/ghodss/yaml"
+	"gopkg.in/yaml.v2"
 	"time"
 	"os"
 	"errors"
@@ -44,7 +44,7 @@ func Exists(release string) (bool, error) {
 	return false, err
 }
 
-func Install(release string, chart string, version string, values map[string]string, acceptsIncomplete bool) (error) {
+func Install(release string, chart string, version string, values map[string]interface{}, acceptsIncomplete bool) (error) {
 	arguments := [] string{}
 
 	arguments = append(arguments, "install", chart)
@@ -58,11 +58,20 @@ func Install(release string, chart string, version string, values map[string]str
 		arguments = append(arguments, "--wait")
 	}
 
-	for key, value := range values {
-		arguments = append(arguments, "--set", key+"="+strings.Replace(value, ",", "\\,", -1))
+	if len(values) > 0 {
+		arguments = append(arguments, "--values", "-")
 	}
 
 	cmd := exec.Command("helm", arguments...)
+	if len(values) > 0 {
+		// pass values as yaml on stdin
+		buf, err := yaml.Marshal(values)
+		if err != nil {
+			return err
+		}
+		cmd.Stdin = bytes.NewReader(buf)
+	}
+
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {

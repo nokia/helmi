@@ -11,8 +11,9 @@ service:
     _name: free
     description: "Free MongoDB Instance"
     chart-values:
-      persistence.size: 8Gi
-      persistence.storageClass: local-storage
+      persistence:
+        size: 8Gi
+        storageClass: local-storage
 ---
 chart-values:
   mongodbUsername: "{{ generateUsername }}"
