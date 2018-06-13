@@ -62,6 +62,8 @@ func Install(release string, chart string, version string, values map[string]int
 		arguments = append(arguments, "--values", "-")
 	}
 
+	arguments = append(arguments, "--debug")
+
 	cmd := exec.Command("helm", arguments...)
 	if len(values) > 0 {
 		// pass values as yaml on stdin

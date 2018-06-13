@@ -235,7 +235,7 @@ type credentialVars struct {
 	Values  valueVars
 	Release releaseVars
 	Cluster clusterVars
-	Secrets map[string]string
+	Secrets valueVars
 }
 
 type valueVars map[string]interface{}
@@ -307,7 +307,7 @@ func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, he
 	// quick poc to retrieve secrets
 	secrets, err := kubectl.GetSecret("secret-client-" + helmStatus.Name + "-datagrid", helmStatus.Namespace)
 	if err != nil {
-		secrets = make(map[string]string)
+		secrets = make(valueVars)
 	}
 
 	env := credentialVars{

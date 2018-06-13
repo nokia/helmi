@@ -88,7 +88,7 @@ func GetNodes() ([]Node, error) {
 	return nodes, nil
 }
 
-func GetSecret(name string, namespace string) (map[string]string, error) {
+func GetSecret(name string, namespace string) (map[string]interface{}, error) {
 	clientset, err := createClient()
 
 	if err != nil {
@@ -97,7 +97,7 @@ func GetSecret(name string, namespace string) (map[string]string, error) {
 
 	secret, err := clientset.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
 
-	var secrets = make(map[string]string)
+	var secrets = make(map[string]interface{})
 	for k, v := range secret.Data {
 		//secrets[string([]byte(k[:]))] = string([]byte(v[:]))
 		// keep the secret base64 encoded (binary secret safe)

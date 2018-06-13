@@ -4,7 +4,7 @@ service:
   _name: "datagrid"
   description: "Datagrid as a Service"
   chart: monostream/datagrid
-  chart-version: 7.2.0
+  chart-version: 7.2.1
   plans:
   -
     _id: 22c6a797-f205-41d0-b887-d1324b4599bc
@@ -12,6 +12,11 @@ service:
     description: "Free Datagrid Instance"
 ---
 chart-values:
+  image_datagrid:
+    repository: registry.access.redhat.com/jboss-datagrid-7/datagrid72-openshift
+    tag: latest
+  image_secretgeneration:
+    pullPolicy: Always
   datagridUsername: "{{ generateUsername }}"
   datagridPassword: "{{ generatePassword }}"
   datagridMgmtUsername: "{{ generateUsername }}"
@@ -20,12 +25,12 @@ chart-values:
     auth: false
   encryption:
     node:
-      enabled: false
+      enabled: true
+      clusterpass: "{{ generatePassword }}"
       keystore:
-        keypass: "{{ generatePassword }}"
-        storepass: "{{ generatePassword }}"
+        pass: "{{ generatePassword }}"
     client:
-      enabled: false
+      enabled: true
       keystore:
         keypass: "{{ generatePassword }}"
         storepass: "{{ generatePassword }}"
@@ -41,5 +46,5 @@ user-credentials:
   mgmt_password: "{{ .Values.datagridMgmtPassword }}"
   {{- if .Secrets }}
   secrets:
-    {{ toYaml .Secrets | indent 4 }}
+{{ toYaml .Secrets | indent 4 }}
   {{- end }}
