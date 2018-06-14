@@ -225,7 +225,14 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 		return nil, err
 	}
 
-	credentials, err := service.UserCredentials(plan, nodes, status, values)
+	// retrieve secrets
+	// this requires the chart to generate secrets with naming convention i.E. "secret-client-helmi12345678-datagrid"
+	secrets, err := kubectl.GetSecret("secret-client-" + name + "-" + service.Name, status.Namespace)
+	if err != nil {
+		secrets = make(map[string]interface{})
+	}
+
+	credentials, err := service.UserCredentials(plan, nodes, status, values, secrets)
 	if err != nil {
 		logger.Error("failed to parse user credentials",
 			zap.String("id", id),
