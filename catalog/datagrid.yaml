@@ -12,9 +12,6 @@ service:
     description: "Free Datagrid Instance"
 ---
 chart-values:
-  image_datagrid:
-    repository: registry.access.redhat.com/jboss-datagrid-7/datagrid72-openshift
-    tag: latest
   image_secretgeneration:
     pullPolicy: Always
   datagridUsername: "{{ generateUsername }}"
@@ -22,7 +19,7 @@ chart-values:
   datagridMgmtUsername: "{{ generateUsername }}"
   datagridMgmtPassword: "{{ generatePassword }}"
   kube:
-    auth: false
+    auth: true
   encryption:
     node:
       enabled: true
