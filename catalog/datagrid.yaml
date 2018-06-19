@@ -41,6 +41,7 @@ chart-values:
   {{- if eq .Plan.Name "nodeport" }}
   service:
     nodePort: "{{ generateNumber 30000 32767 }}"
+  hostname: {{ env "DOMAIN" | quote }}
   {{- end }}
 ---
 user-credentials:
