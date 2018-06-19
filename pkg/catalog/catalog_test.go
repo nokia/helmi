@@ -147,7 +147,8 @@ func Test_GetUserCredentials(t *testing.T) {
 		t.Error(red(err.Error()))
 	}
 
-	credentials, err := s.UserCredentials(p, nodes, status, values)
+	secrets := make(map[string]interface {})
+	credentials, err := s.UserCredentials(p, nodes, status, values, secrets)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
