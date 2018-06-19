@@ -226,8 +226,7 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 	}
 
 	// retrieve secrets
-	// this requires the chart to generate secrets with naming convention i.E. "secret-client-helmi12345678-datagrid"
-	secrets, err := kubectl.GetSecret("secret-client-" + name + "-" + service.Name, status.Namespace)
+	secrets, err := kubectl.GetSecret(name + "-" + service.Name, status.Namespace)
 	if err != nil {
 		secrets = make(map[string]interface{})
 	}
