@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"math/rand"
 
 	"fmt"
 	"os"
@@ -151,6 +152,10 @@ func templateFuncMap() template.FuncMap {
 			m["Error"] = err.Error()
 		}
 		return m
+	}
+
+	f["generateNumber"] = func(min int, max int) int {
+		return rand.Intn(max - min) + min
 	}
 
 	randomUuid := func() string {
