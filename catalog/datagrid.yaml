@@ -8,8 +8,15 @@ service:
   plans:
   -
     _id: 22c6a797-f205-41d0-b887-d1324b4599bc
-    _name: free
-    description: "Free Datagrid Instance"
+    _name: clusterip
+    description: "Datagrid Instance with ClusterIP"
+  -
+    _id: b1669d78-667f-4626-9bce-7209b0069129
+    _name: nodeport
+    description: "Datagrid Instance with NodePort"
+    chart-values:
+      service:
+        type: "NodePort"
 ---
 chart-values:
   image_secretgeneration:
@@ -31,12 +38,20 @@ chart-values:
       keystore:
         keypass: "{{ generatePassword }}"
         storepass: "{{ generatePassword }}"
+  {{- if eq .Plan.Name "nodeport" }}
+  service:
+    nodePort: "{{ generateNumber 30000 32767 }}"
+  {{- end }}
 ---
 user-credentials:
-  uri: "http://{{ .Values.datagridUsername }}:{{ .Values.datagridPassword }}@{{ .Release.Name }}-datagrid.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 8080 }}/rest"
+  {{- if eq .Plan.Name "clusterip" }}
   hostname: "{{ .Release.Name }}-datagrid.{{ .Release.Namespace }}.svc.cluster.local"
-  rest_port: "{{ .Cluster.Port 8080 }}"
-  hotrod_port: "{{ .Cluster.Port 11222 }}"
+  {{- else }}
+  hostname: "{{ .Cluster.Address }}"
+  {{- end }}
+  rest_port: "{{ .Cluster.Port .Values.service.externalPortRest }}"
+  hotrod_port: "{{ .Cluster.Port .Values.service.internalPortHotRod }}"
+  external_hotrod_port: "{{ .Cluster.Port .Values.service.externalPortHotRod }}"
   username: "{{ .Values.datagridUsername }}"
   password: "{{ .Values.datagridPassword }}"
   mgmt_username: "{{ .Values.datagridMgmtUsername }}"
