@@ -43,6 +43,10 @@ chart-values:
     nodePort: "{{ generateNumber 30000 32767 }}"
   hostname: {{ env "DOMAIN" | quote }}
   {{- end }}
+  ingress:
+    enabled: true
+    # used to create an ingress record.
+    hosts: {}
 ---
 user-credentials:
   {{- if eq .Plan.Name "clusterip" }}
