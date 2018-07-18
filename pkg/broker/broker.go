@@ -116,7 +116,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 
 func (b *Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
 	spec := brokerapi.ProvisionedServiceSpec{}
-	err := release.Install(&b.catalog, details.ServiceID, details.PlanID, instanceID, asyncAllowed)
+	err := release.Install(&b.catalog, details.ServiceID, details.PlanID, instanceID, asyncAllowed, details.GetRawParameters(),)
 
 	if err != nil {
 		exists, existsErr := release.Exists(instanceID)
