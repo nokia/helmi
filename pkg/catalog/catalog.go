@@ -10,14 +10,14 @@ import (
 
 	"fmt"
 	"os"
-
 	"bytes"
 	"github.com/Masterminds/sprig"
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
 	"github.com/satori/go.uuid"
 	"strconv"
-	"golang.org/x/crypto/bcrypt"
+		"crypto/sha1"
+	"encoding/base64"
 )
 
 type Catalog struct {
@@ -155,12 +155,12 @@ func templateFuncMap() template.FuncMap {
 	}
 
 	f["htpasswd"] = func(str string) string {
+		s := sha1.New()
 
-		passwordBytes, err := bcrypt.GenerateFromPassword([]byte(str), bcrypt.MinCost)
-		if err != nil {
-			return ""
-		}
-		return string(passwordBytes)
+		s.Write([]byte(str))
+		passwordSum := []byte(s.Sum(nil))
+
+		return "{SHA}" + base64.StdEncoding.EncodeToString(passwordSum)
 	}
 
 	randomUuid := func() string {
