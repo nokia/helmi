@@ -37,10 +37,10 @@ chart-values:
 
 ---
 user-credentials:
-  kibana-uri: "http://{{ .Release.Name }}-kibana.{{ .Release.Namespace }}.{{ .Values.cluster.ingressDomain }}"
+  kibana-uri: "https://{{ .Release.Name }}-kibana.{{ .Release.Namespace }}.{{ .Values.cluster.ingressDomain }}"
   kibana-username: "{{ .Values.kibana.ingress.username }}"
   kibana-password: "{{ .Values.kibana.ingress.passwordPlain }}"
-  elasticsearch-uri: "http://{{ .Release.Name }}-es.{{ .Release.Namespace }}.{{ .Values.cluster.ingressDomain }}"
+  elasticsearch-uri: "https://{{ .Release.Name }}-es.{{ .Release.Namespace }}.{{ .Values.cluster.ingressDomain }}"
   elasticsearch-username: "{{ .Values.elasticsearch.ingress.username }}"
   elasticsearch-password: "{{ .Values.elasticsearch.ingress.passwordPlain }}"
 
