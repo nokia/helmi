@@ -17,6 +17,7 @@ import (
 	"github.com/monostream/helmi/pkg/kubectl"
 	"github.com/satori/go.uuid"
 	"strconv"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Catalog struct {
@@ -151,6 +152,15 @@ func templateFuncMap() template.FuncMap {
 			m["Error"] = err.Error()
 		}
 		return m
+	}
+
+	f["htpasswd"] = func(str string) string {
+
+		passwordBytes, err := bcrypt.GenerateFromPassword([]byte(str), bcrypt.MinCost)
+		if err != nil {
+			return ""
+		}
+		return string(passwordBytes)
 	}
 
 	randomUuid := func() string {
