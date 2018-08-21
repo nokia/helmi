@@ -15,7 +15,7 @@ service:
 {{- $elasticsearchPassword := generatePassword -}}
 chart-values:
  cluster:
-   ingressDomain: {{ env "DOMAIN" }}
+   ingressDomain: {{ env "INGRESS_DOMAIN" }}
  kibana:
    ingress:
      enabled: true
