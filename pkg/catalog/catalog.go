@@ -10,13 +10,14 @@ import (
 
 	"fmt"
 	"os"
-
 	"bytes"
 	"github.com/Masterminds/sprig"
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
 	"github.com/satori/go.uuid"
 	"strconv"
+		"crypto/sha1"
+	"encoding/base64"
 )
 
 type Catalog struct {
@@ -151,6 +152,15 @@ func templateFuncMap() template.FuncMap {
 			m["Error"] = err.Error()
 		}
 		return m
+	}
+
+	f["htpasswd"] = func(str string) string {
+		s := sha1.New()
+
+		s.Write([]byte(str))
+		passwordSum := []byte(s.Sum(nil))
+
+		return "{SHA}" + base64.StdEncoding.EncodeToString(passwordSum)
 	}
 
 	randomUuid := func() string {
