@@ -15,8 +15,8 @@ RUN cp /go/src/github.com/monostream/helmi/helmi .
 RUN cp -r /go/src/github.com/monostream/helmi/catalog .
 RUN rm -r /go/src/
 
-# Download helm 2.8.2
-RUN wget -nv -O- https://storage.googleapis.com/kubernetes-helm/helm-v2.8.2-linux-amd64.tar.gz | tar --strip-components=1 -zxf -
+# Download helm 2.10.0
+RUN wget -nv -O- https://storage.googleapis.com/kubernetes-helm/helm-v2.10.0-linux-amd64.tar.gz | tar --strip-components=1 -zxf -
 
 # Download dumb-init 1.2.1
 RUN wget -nv -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.1/dumb-init_1.2.1_amd64 && chmod 755 /usr/local/bin/dumb-init
