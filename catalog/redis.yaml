@@ -4,7 +4,7 @@ service:
   _name: "redis"
   description: "Redis as a Service"
   chart: stable/redis
-  chart-version: 3.0.2
+  chart-version: 3.8.1
   plans:
   -
     _id: 381c8dd1-676b-4d1f-ae00-97e8304f966f
@@ -14,7 +14,6 @@ service:
       master:
         persistence:
           size: 8Gi
-          storageClass: local-storage
 ---
 chart-values:
   password: "{{ generatePassword }}"

@@ -13,7 +13,6 @@ service:
     chart-values:
       persistence:
         size: 8Gi
-        storageClass: local-storage
   -
     _id: 7b16d6aa-260a-4b8d-b12c-464d2cedb9d0
     _name: dev
@@ -21,7 +20,6 @@ service:
     chart-values:
       persistence:
         size: 8Gi
-        storageClass: local-storage
       replicaCount: 1
       replicaMinAvailable: 0
 ---

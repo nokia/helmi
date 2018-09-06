@@ -4,7 +4,7 @@ service:
   _name: "mongodb"
   description: "MongoDB as a Service"
   chart: stable/mongodb
-  chart-version: 2.0.1
+  chart-version: 4.3.0
   plans:
   -
     _id: 905b1f0e-c815-41d4-b3e4-6ccb602b9e8e
@@ -13,7 +13,6 @@ service:
     chart-values:
       persistence:
         size: 8Gi
-        storageClass: local-storage
 ---
 chart-values:
   mongodbUsername: "{{ generateUsername }}"

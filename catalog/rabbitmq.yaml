@@ -4,7 +4,7 @@ service:
   _name: "rabbitmq"
   description: "RabbitMQ as a Service"
   chart: stable/rabbitmq
-  chart-version: 0.7.5
+  chart-version: 2.2.0
   plans:
   -
     _id: d2badac0-8e41-4588-a9fc-0e662c480610
@@ -13,7 +13,6 @@ service:
     chart-values:
       persistence:
         size: 8Gi
-        storageClass: local-storage
 ---
 chart-values:
   rbacEnabled: true

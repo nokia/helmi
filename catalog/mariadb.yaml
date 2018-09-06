@@ -4,7 +4,7 @@ service:
   _name: mariadb
   description: "MariaDB as a Service"
   chart: stable/mariadb
-  chart-version: 3.0.3
+  chart-version: 4.4.0
   plans:
   -
     _id: e79306ef-4e10-4e3d-b38e-ffce88c90f59
@@ -13,7 +13,6 @@ service:
     chart-values:
       persistence:
         size: 8Gi
-        storageClass: local-storage
 ---
 chart-values:
   mariadbUser: "{{ generateUsername }}"
