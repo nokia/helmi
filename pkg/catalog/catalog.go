@@ -1,23 +1,26 @@
 package catalog
 
 import (
+	"archive/zip"
+	"bytes"
+	"crypto/sha1"
+	"encoding/base64"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"net/http"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
-	"fmt"
-	"os"
-	"bytes"
 	"github.com/Masterminds/sprig"
+	"github.com/satori/go.uuid"
+
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
-	"github.com/satori/go.uuid"
-	"strconv"
-		"crypto/sha1"
-	"encoding/base64"
 )
 
 type Catalog struct {
@@ -48,6 +51,24 @@ type Plan struct {
 	ChartValues  map[interface{}]interface{} `yaml:"chart-values"`
 
 	UserCredentials map[interface{}]interface{} `yaml:"user-credentials"`
+}
+
+// Parses any catalog format: local directories, local zip archives or zip archive urls
+func Parse(name string) (Catalog, error) {
+	if strings.HasPrefix(name, "http://") || strings.HasPrefix(name, "https://") {
+		return ParseZipURL(name)
+	}
+
+	fi, err := os.Stat(name)
+	if err != nil {
+		return Catalog{}, err
+	}
+
+	if fi.IsDir() {
+		return ParseDir(name)
+	} else {
+		return ParseZipFile(name)
+	}
 }
 
 // Parses all `.yaml` and `.yml` files in the specified path as service definitions
@@ -81,6 +102,74 @@ func ParseDir(dir string) (Catalog, error) {
 
 	if len(c.Services) == 0 {
 		err = fmt.Errorf("no services found in catalog directory: %s", dir)
+		return c, err
+	}
+
+	return c, nil
+}
+
+func ParseZipFile(file string) (Catalog, error) {
+	zipFile, err := zip.OpenReader(file)
+	if err != nil {
+		return Catalog{}, err
+	}
+	defer zipFile.Close()
+
+	return parseZipReader(&zipFile.Reader, file)
+}
+
+func ParseZipURL(url string) (Catalog, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return Catalog{}, err
+	}
+	defer resp.Body.Close()
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return Catalog{}, err
+	}
+
+	reader := bytes.NewReader(b)
+	zipReader, err := zip.NewReader(reader, reader.Size())
+	if err != nil {
+		return Catalog{}, err
+	}
+
+	return parseZipReader(zipReader, url)
+}
+
+func parseZipReader(zipReader *zip.Reader, path string) (Catalog, error) {
+	c := Catalog{
+		Services: make(map[string]Service),
+	}
+
+	for _, entry := range zipReader.File {
+		ext := filepath.Ext(entry.Name)
+		if ext != ".yml" && ext != ".yaml" {
+			continue
+		}
+
+		f, err := entry.Open()
+		if err != nil {
+			return c, err
+		}
+
+		content, err := ioutil.ReadAll(f)
+		f.Close()
+
+		if err != nil {
+			return c, err
+		}
+
+		err = c.parseServiceDefinition(content, path)
+		if err != nil {
+			return c, err
+		}
+	}
+
+	if len(c.Services) == 0 {
+		err := fmt.Errorf("no services found in catalog zip file: %s", path)
 		return c, err
 	}
 
