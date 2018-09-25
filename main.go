@@ -8,21 +8,26 @@ import (
 	"os"
 )
 
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+
+	return fallback
+}
+
 func main() {
 	logger := lager.NewLogger("helmi")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 	logger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
 
-	c, err := catalog.ParseDir("./catalog")
+	catalogSource := getEnv("CATALOG_SOURCE", "./catalog")
+	c, err := catalog.Parse(catalogSource)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	addr := ":5000"
-	if port, ok := os.LookupEnv("PORT"); ok {
-		addr = ":" + port
-	}
-
+	addr := ":" + getEnv("PORT", "5000")
 	user := os.Getenv("USERNAME")
 	pass := os.Getenv("PASSWORD")
 
