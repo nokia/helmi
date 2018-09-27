@@ -32,6 +32,6 @@ chart-values:
 ---
 user-credentials:
   host: "{{ .Cluster.Address }}"
-  port: "{{ .Cluster.master.port }}"
+  port: "{{ .Values.master.port }}"
   password: "{{ .Values.password }}"
   uri: "redis://:{{ .Values.password }}@{{ .Cluster.Address }}:{{ .Values.master.port }}"
