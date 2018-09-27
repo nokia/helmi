@@ -126,6 +126,7 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		}
 	}
 
+	spec.IsAsync = asyncAllowed
 	return spec, err
 }
 
