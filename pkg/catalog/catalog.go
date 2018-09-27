@@ -369,7 +369,11 @@ func (c clusterVars) Port(port ...int) string {
 	return ""
 }
 
-func extractAddress(kubernetesNodes []kubectl.Node) string {
+func extractAddress(helmStatus helm.Status, kubernetesNodes []kubectl.Node) string {
+	if len(helmStatus.ExternalIPs) > 0 {
+		return helmStatus.ExternalIPs[0]
+	}
+
 	// return dns name if set as environment variable
 	if value, ok := os.LookupEnv("DOMAIN"); ok {
 		return value
@@ -410,7 +414,7 @@ func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, he
 			Namespace: helmStatus.Namespace,
 		},
 		Cluster: clusterVars{
-			Address:    extractAddress(kubernetesNodes),
+			Address:    extractAddress(helmStatus, kubernetesNodes),
 			Hostname:   extractHostname(kubernetesNodes),
 			helmStatus: helmStatus,
 		},

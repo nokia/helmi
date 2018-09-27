@@ -20,9 +20,11 @@ type Status struct {
 
 	DesiredNodes int
 	AvailableNodes int
+	PendingServices int
 
-	NodePorts map[int] int
-	ClusterPorts map[int] int
+	NodePorts map[int]int
+	ClusterPorts map[int]int
+	ExternalIPs []string
 }
 
 func Exists(release string) (bool, error) {
@@ -137,7 +139,11 @@ func GetStatus(release string) (Status, error) {
 	const DesiredLabel = "DESIRED"
 	const CurrentLabel = "CURRENT"
 	const AvailableLabel = "AVAILABLE"
+
+	const TypeLabel = "TYPE"
+	const ExternalIPLabel = "EXTERNAL-IP"
 	const PortsLabel = "PORT(S)"
+
 
 	var lastResource string
 	var lastDeploymentTime time.Time
@@ -145,6 +151,9 @@ func GetStatus(release string) (Status, error) {
 	columnDesired := -1
 	columnCurrent := -1
 	columnAvailable := -1
+
+	columnType := -1
+	columnExternalIP := -1
 	columnPort := -1
 
 	// our name
@@ -167,6 +176,9 @@ func GetStatus(release string) (Status, error) {
 			columnDesired = -1
 			columnCurrent = -1
 			columnAvailable = -1
+
+			columnType = -1
+			columnExternalIP = -1
 			columnPort = -1
 		}
 
@@ -185,10 +197,16 @@ func GetStatus(release string) (Status, error) {
 			lastDeploymentTime, _ = time.ParseInLocation(time.ANSIC, strings.TrimPrefix(line, DeploymentTimePrefix), loc)
 		}
 
+		// deployment columns
 		indexDesired := strings.Index(line, DesiredLabel)
 		indexCurrent := strings.Index(line, CurrentLabel)
 		indexAvailable := strings.Index(line, AvailableLabel)
+
+		// service columns
+		indexType := strings.Index(line, TypeLabel)
+		indexExternalIP := strings.Index(line, ExternalIPLabel)
 		indexPort := strings.Index(line, PortsLabel)
+
 
 		if indexDesired >= 0 && indexCurrent >= 0 {
 			columnDesired = indexDesired
@@ -251,6 +269,24 @@ func GetStatus(release string) (Status, error) {
 							status.NodePorts[clusterPort] = nodePort
 							status.ClusterPorts[clusterPort] = clusterPort
 						}
+					}
+				}
+			}
+		}
+
+		if indexType >= 0 && indexExternalIP >= 0 {
+			columnType = indexType
+			columnExternalIP = indexExternalIP
+		} else {
+			if columnType >= 0 && columnExternalIP >= 0 {
+				svcType := strings.Fields(line[columnType:])[0]
+				externalIP := strings.Fields(line[columnExternalIP:])[0]
+
+				if svcType == "LoadBalancer" {
+					if externalIP == "<pending>" {
+						status.PendingServices++
+					} else if externalIP != "<none>" {
+						status.ExternalIPs = append(status.ExternalIPs, externalIP)
 					}
 				}
 			}

@@ -186,7 +186,7 @@ func GetStatus(id string) (Status, error) {
 	return Status{
 		IsFailed:    status.IsFailed,
 		IsDeployed:  status.IsDeployed,
-		IsAvailable: status.AvailableNodes >= status.DesiredNodes,
+		IsAvailable: status.AvailableNodes >= status.DesiredNodes && status.PendingServices == 0,
 	}, nil
 }
 
@@ -198,7 +198,6 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 	plan := service.Plan(planId)
 
 	status, err := helm.GetStatus(name)
-
 	if err != nil {
 		exists, existsErr := helm.Exists(name)
 
@@ -218,8 +217,11 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 		return nil, err
 	}
 
-	nodes, err := kubectl.GetNodes()
+	if status.PendingServices > 0 {
+		return nil, errors.New("service still pending")
+	}
 
+	nodes, err := kubectl.GetNodes()
 	if err != nil {
 		logger.Error("failed to get kubernetes nodes",
 			zap.String("id", id),
