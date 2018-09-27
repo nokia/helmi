@@ -4,22 +4,34 @@ service:
   _name: "redis"
   description: "Redis as a Service"
   chart: stable/redis
-  chart-version: 3.8.1
+  chart-version: 4.1.0
   plans:
   -
     _id: 381c8dd1-676b-4d1f-ae00-97e8304f966f
-    _name: free
-    description: "Free Redis Instance"
+    _name: v4.1.0-external
+    description: "Redis v4.1.0 with external IP"
     chart-values:
       master:
+        service:
+          type: LoadBalancer
         persistence:
           size: 8Gi
 ---
 chart-values:
   password: "{{ generatePassword }}"
+  master:
+    securityContext:
+      enabled: "true"
+      runAsUser: "0"
+      fsGroup: "0"  
+  slave:
+    securityContext:
+      enabled: "0"
+      runAsUser: "0"
+      fsGroup: "0"
 ---
 user-credentials:
-  uri: "redis://:{{ .Values.password }}@{{ .Release.Name }}-redis.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port }}"
+  host: "{{ .Cluster.Address }}"
+  port: "{{ .Cluster.master.port }}"
   password: "{{ .Values.password }}"
-  hostname: "{{ .Cluster.Address }}"
-  port: "{{ .Cluster.Port }}"
+  uri: "redis://:{{ .Values.password }}@{{ .Cluster.Address }}:{{ .Values.master.port }}"
