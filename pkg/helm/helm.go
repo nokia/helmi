@@ -27,6 +27,10 @@ type Status struct {
 	ExternalIPs []string
 }
 
+func (s *Status) IsAvailable() bool {
+	return s.AvailableNodes >= s.DesiredNodes && s.PendingServices == 0
+}
+
 func Exists(release string) (bool, error) {
 	cmd := exec.Command("helm", "status", release)
 	output, err := cmd.CombinedOutput()

@@ -186,7 +186,7 @@ func GetStatus(id string) (Status, error) {
 	return Status{
 		IsFailed:    status.IsFailed,
 		IsDeployed:  status.IsDeployed,
-		IsAvailable: status.AvailableNodes >= status.DesiredNodes && status.PendingServices == 0,
+		IsAvailable: status.IsAvailable(),
 	}, nil
 }
 
@@ -217,8 +217,8 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 		return nil, err
 	}
 
-	if status.PendingServices > 0 {
-		return nil, errors.New("service still pending")
+	if !status.IsAvailable() {
+		return nil, errors.New("service not yet available")
 	}
 
 	nodes, err := kubectl.GetNodes()
