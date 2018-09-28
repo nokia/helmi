@@ -1,15 +1,15 @@
 ---
 service:
   _id: 09ac769d-d29c-4f95-8fde-29876b01d687
-  _name: cockroachdb
-  description: "CockroachDB as a Service"
+  _name: devcloud-cockroachdb
+  description: "DevCloud CockroachDB"
   chart: stable/cockroachdb
   chart-version: 1.2.5
   plans:
   -
     _id: 2c1b461d-a6e0-4712-a42c-8a75d6147110
-    _name: v2.0.5-external
-    description: "CockroachDB v2.0.5 with external IP"
+    _name: v2.0.5-basic-external
+    description: "CockroachDB v2.0.5 (Insecure)"
     chart-values:
       ImageTag: v2.0.5
       Service:

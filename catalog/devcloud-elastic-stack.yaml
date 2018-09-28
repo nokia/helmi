@@ -1,15 +1,15 @@
 ---
 service:
   _id: 405e9529-f593-4f90-86e2-b0166a9e3a1e
-  _name: "elk-stack"
-  description: "ELK stack as a service"
+  _name: "devcloud-elastic-stack"
+  description: "DevCloud Elastic Stack"
   chart: monostream/elk-stack
   chart-version: 0.1.0
   plans:
   -
     _id: 724d7a24-461c-4a46-9fe9-0c3243d99dce
-    _name: free
-    description: "Free ELK instance"
+    _name: v6.2.4-basic-external
+    description: "Elasticsearch v6.2.4, Kibana v6.3.1, Curator v5.5.4"
 ---
 {{- $kibanaPassword := generatePassword -}}
 {{- $elasticsearchPassword := generatePassword -}}

@@ -1,27 +1,20 @@
 ---
 service:
   _id: 201cb950-e640-4453-9d91-4708ea0a1342
-  _name: "cassandra"
-  description: "Cassandra as a Service"
+  _name: "devcloud-cassandra"
+  description: "DevCloud Cassandra"
   chart: monostream/cassandra
   chart-version: 0.2.8
   plans:
   -
     _id: 169d5466-12c9-4a89-a063-f72048b3d4c4
-    _name: free
-    description: "Free 3 Node Cassandra Instance"
+    _name: v3.11-basic-external
+    description: "Cassandra v3.11"
     chart-values:
+      service:
+        type: LoadBalancer
       persistence:
         size: 8Gi
-  -
-    _id: 7b16d6aa-260a-4b8d-b12c-464d2cedb9d0
-    _name: dev
-    description: "Single Node Development Instance"
-    chart-values:
-      persistence:
-        size: 8Gi
-      replicaCount: 1
-      replicaMinAvailable: 0
 ---
 chart-values:
   cassandraUsername: "{{ generateUsername }}"

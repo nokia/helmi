@@ -1,15 +1,15 @@
 ---
 service:
   _id: c26e6c7a-fe17-4568-ac4c-46545ab1d178
-  _name: "redis"
-  description: "Redis as a Service"
+  _name: "devcloud-redis"
+  description: "DevCloud Redis"
   chart: stable/redis
   chart-version: 4.1.0
   plans:
   -
     _id: 381c8dd1-676b-4d1f-ae00-97e8304f966f
-    _name: v4.1.0-external
-    description: "Redis v4.1.0 with external IP"
+    _name: v4.1.0-basic-external
+    description: "Redis v4.1.0"
     chart-values:
       master:
         service:
