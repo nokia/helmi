@@ -3,13 +3,13 @@ package helm
 import (
 	"bufio"
 	"bytes"
-	"strings"
-	"strconv"
-	"os/exec"
-	"gopkg.in/yaml.v2"
-	"time"
-	"os"
 	"errors"
+	"gopkg.in/yaml.v2"
+	"os"
+	"os/exec"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type Status struct {
@@ -305,7 +305,7 @@ func GetStatus(release string) (Status, error) {
 		timeout = "30m"
 	}
 	duration, _ := time.ParseDuration(timeout)
-	if time.Now().After(lastDeploymentTime.Add(duration)) && status.AvailableNodes < status.DesiredNodes {
+	if time.Now().After(lastDeploymentTime.Add(duration)) && !status.IsAvailable() {
 		status.IsFailed = true
 	}
 
