@@ -4,7 +4,7 @@ service:
   _name: "devcloud-cassandra"
   description: "DevCloud Cassandra"
   chart: monostream/cassandra
-  chart-version: 0.2.9
+  chart-version: 0.2.10
   plans:
   -
     _id: 169d5466-12c9-4a89-a063-f72048b3d4c4
