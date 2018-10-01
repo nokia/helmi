@@ -22,8 +22,8 @@ chart-values:
 user-credentials:
   username: root
   password: ""
-  host: "{{ .Cluster.Address }}"
-  port: "{{ .Values.ExternalGrpcPort }}"
+  host: "{{ .Services.IP "cockroachdb-public" }}"
+  port: "{{ .Services.Port "cockroachdb-public" .Values.ExternalGrpcPort }}"
   sslRequired: false
-  uri: "postgresql://root@{{ .Cluster.Address }}:{{ .Values.ExternalGrpcPort }}/?sslmode=disable"
-  admin: "http://{{ .Cluster.Address }}:{{ .Values.ExternalHttpPort }}"
+  uri: "postgresql://root@{{ .Services.Address "cockroachdb-public" .Values.ExternalGrpcPort }}/?sslmode=disable"
+  admin: "http://{{ .Services.Address "cockroachdb-public" .Values.ExternalHttpPort }}"

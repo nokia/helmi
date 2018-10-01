@@ -23,7 +23,7 @@ chart-values:
     securityContext:
       enabled: "true"
       runAsUser: "0"
-      fsGroup: "0"  
+      fsGroup: "0"
   slave:
     securityContext:
       enabled: "0"
@@ -31,7 +31,7 @@ chart-values:
       fsGroup: "0"
 ---
 user-credentials:
-  host: "{{ .Cluster.Address }}"
-  port: "{{ .Values.master.port }}"
+  host: "{{ .Services.IP "redis-master" }}"
+  port: "{{ .Services.Port "redis-master" .Values.master.port }}"
   password: "{{ .Values.password }}"
-  uri: "redis://:{{ .Values.password }}@{{ .Cluster.Address }}:{{ .Values.master.port }}"
+  uri: "redis://:{{ .Values.password }}@{{ .Services.Address "redis-master" .Values.master.port }}"

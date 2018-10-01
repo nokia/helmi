@@ -4,7 +4,7 @@ service:
   _name: "devcloud-cassandra"
   description: "DevCloud Cassandra"
   chart: monostream/cassandra
-  chart-version: 0.2.8
+  chart-version: 0.2.9
   plans:
   -
     _id: 169d5466-12c9-4a89-a063-f72048b3d4c4
@@ -21,11 +21,11 @@ chart-values:
   cassandraPassword: "{{ generatePassword }}"
 ---
 user-credentials:
-  jdbcUrl: "jdbc:cassandra://{{ .Values.cassandraUsername }}:{{ .Values.cassandraPassword }}@{{ .Release.Name }}-cassandra.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 9042 }}"
-  uri: "cassandra://{{ .Values.cassandraUsername }}:{{ .Values.cassandraPassword }}@{{ .Release.Name }}-cassandra.{{ .Release.Namespace }}.svc.cluster.local:{{ .Cluster.Port 9042 }}"
+  jdbcUrl: "jdbc:cassandra://{{ .Values.cassandraUsername }}:{{ .Values.cassandraPassword }}@{{ .Services.Address "cassandra-public" 9042 }}"
+  uri: "cassandra://{{ .Values.cassandraUsername }}:{{ .Values.cassandraPassword }}@{{ .Services.Address "cassandra-public" 9042 }}"
   node_ips:
-  - "{{ .Release.Name }}-cassandra.{{ .Release.Namespace }}.svc.cluster.local"
-  cql_port: "{{ .Cluster.Port 9042 }}"
-  thrift_port: "{{ .Cluster.Port 9160 }}"
+  - {{ .Services.IP "cassandra-public" }}
+  cql_port: "{{ .Services.FindPort 9042 }}"
+  thrift_port: "{{ .Services.FindPort 9160 }}"
   username: "{{ .Values.cassandraUsername }}"
   password: "{{ .Values.cassandraPassword }}"
