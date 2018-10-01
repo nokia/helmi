@@ -301,7 +301,7 @@ func GetStatus(release string) (Status, error) {
 
 				// parse cluster ip
 				clusterIP := strings.Fields(line[columnClusterIP:])[0]
-				if clusterIP != "<none>" {
+				if clusterIP != "<none>" && clusterIP != "None" {
 					status.Services[svcName].ClusterIP = clusterIP
 				}
 
