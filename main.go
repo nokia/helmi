@@ -47,7 +47,7 @@ func main() {
 	catalogSource := getEnv("CATALOG_URL", "./catalog")
 	c, err := catalog.Parse(catalogSource)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to parse catalog. Did you set CATALOG_URL correctly? Error:", err)
 	}
 
 	// expects a JSON map in the form of "name":"http://url" pairs
