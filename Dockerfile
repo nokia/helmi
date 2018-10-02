@@ -31,6 +31,7 @@ COPY --from=builder /usr/local/bin/dumb-init /usr/local/bin/dumb-init
 
 # Setup environment
 ENV PATH "/app:${PATH}"
+ENV REPOSITORY_URLS '{"monostream":"http://helm-charts.monocloud.io"}'
 
 RUN addgroup -S helmi && \
     adduser -S -G helmi helmi && \
@@ -39,9 +40,7 @@ RUN addgroup -S helmi && \
 USER helmi
 
 # Initialize helm
-RUN helm init --client-only && \
-    helm repo add monostream http://helm-charts.monocloud.io && \
-    helm repo update
+RUN helm init --client-only
 
 ENTRYPOINT ["/usr/local/bin/dumb-init", "--"]
 
