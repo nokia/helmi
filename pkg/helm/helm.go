@@ -378,9 +378,13 @@ func RepoAdd(name string, repoURL string) error {
 	}
 
 	// extract and remove username and password form url
-	username := url.User.Username()
-	password, _ := url.User.Password()
-	url.User = nil
+	username := ""
+	password := ""
+	if url.User != nil {
+		username = url.User.Username()
+		password, _ = url.User.Password()
+		url.User = nil
+	}
 
 	args := []string{"repo", "add", name, url.String()}
 	if len(username) > 0 {
