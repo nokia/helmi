@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"gopkg.in/yaml.v2"
+	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
@@ -360,6 +361,49 @@ func GetStatus(release string) (Status, error) {
 
 func IsReady() error {
 	cmd := exec.Command("helm", "list", "--short")
+	stderr := new(bytes.Buffer)
+	cmd.Stderr = stderr
+	err := cmd.Run()
+	if _, exited := err.(*exec.ExitError); exited {
+		msg := strings.TrimSpace(stderr.String())
+		err = errors.New(msg)
+	}
+	return err
+}
+
+func RepoAdd(name string, repoURL string) error {
+	url, err := url.Parse(repoURL)
+	if err != nil {
+		return err
+	}
+
+	// extract and remove username and password form url
+	username := url.User.Username()
+	password, _ := url.User.Password()
+	url.User = nil
+
+	args := []string{"repo", "add", name, url.String()}
+	if len(username) > 0 {
+		args = append(args, "--username", username)
+	}
+
+	if len(password) > 0 {
+		args = append(args, "--password", password)
+	}
+
+	cmd := exec.Command("helm", args...)
+	stderr := new(bytes.Buffer)
+	cmd.Stderr = stderr
+	err = cmd.Run()
+	if _, exited := err.(*exec.ExitError); exited {
+		msg := strings.TrimSpace(stderr.String())
+		return errors.New(msg)
+	}
+
+	return nil
+}
+func RepoUpdate() error {
+	cmd := exec.Command("helm", "repo", "update")
 	stderr := new(bytes.Buffer)
 	cmd.Stderr = stderr
 	err := cmd.Run()
