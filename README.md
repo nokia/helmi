@@ -87,5 +87,6 @@ The service catalog and referenced Helm charts are also configured using env var
 | `CATALOG_URL` | `http://example.com/catalog.zip` | URL to a zipped catalog folder (can also be a local file path to a mounted volume). |
 | `REPOSITORY_URLS` | `{"monostream":"http://helm-charts.monocloud.io",`<br>`"foo":"https:/user:pass@example.com/path"}` | JSON map of name-url pairs |
 | `DOMAIN` | `cluster.example.com` | External DNS domain used to construct connection strings |
+| `INGRESS_DOMAIN`  | `cluster.example.com` | Domain used to construct ingress host strings |
 
 In the k8s deployment, username and password are read from a secret, see [kube-helmi-secret.yaml](docs/kubernetes/kube-helmi-secret.yaml)

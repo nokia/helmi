@@ -349,7 +349,7 @@ type credentialVars struct {
 	Plan     *Plan
 	Values   valueVars
 	Release  releaseVars
-	Cluster  clusterVars
+	Cluster  *clusterVars
 	Services *servicesVars
 }
 
@@ -488,7 +488,7 @@ func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, he
 			Name:      helmStatus.Name,
 			Namespace: helmStatus.Namespace,
 		},
-		Cluster: clusterVars{
+		Cluster: &clusterVars{
 			Address:  extractAddress(kubernetesNodes),
 			Hostname: extractHostname(kubernetesNodes),
 		},
