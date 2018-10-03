@@ -305,14 +305,23 @@ type chartValueVars struct {
 	Release struct {
 		Name string
 	}
+	Cluster *clusterVars
 }
 
 func (s *Service) ChartValues(p *Plan, releaseName string) (map[string]interface{}, error) {
 	b := new(bytes.Buffer)
+
+	// since Cluster.Address and Cluster.Hostname are never used in the ChartValues, errors here aren't handled
+	nodes, _ := kubectl.GetNodes()
+
 	data := chartValueVars{
 		Service: s,
 		Plan: p,
-		Release: struct{ Name string }{Name: releaseName},
+		Release: struct{ Name string }{ Name: releaseName },
+		Cluster: &clusterVars{
+			Address:  extractAddress(nodes),
+			Hostname: extractHostname(nodes),
+		},
 	}
 	err := s.valuesTemplate.Execute(b, data)
 	if err != nil {
@@ -429,6 +438,13 @@ func (s *servicesVars) FindIP() string {
 		}
 	}
 
+	return ""
+}
+
+func (c *clusterVars) IngressDomain() string {
+	if value, ok := os.LookupEnv("INGRESS_DOMAIN"); ok {
+		return value
+	}
 	return ""
 }
 
