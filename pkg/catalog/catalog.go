@@ -302,11 +302,18 @@ func mergeMaps(maps ...map[string]interface{}) map[string]interface{} {
 type chartValueVars struct {
 	*Service
 	*Plan
+	Release struct {
+		Name string
+	}
 }
 
-func (s *Service) ChartValues(p *Plan) (map[string]interface{}, error) {
+func (s *Service) ChartValues(p *Plan, releaseName string) (map[string]interface{}, error) {
 	b := new(bytes.Buffer)
-	data := chartValueVars{s, p}
+	data := chartValueVars{
+		Service: s,
+		Plan: p,
+		Release: struct{ Name string }{Name: releaseName},
+	}
 	err := s.valuesTemplate.Execute(b, data)
 	if err != nil {
 		return nil, err
