@@ -329,11 +329,12 @@ func (s *Service) ChartValues(p *Plan) (map[string]interface{}, error) {
 }
 
 type credentialVars struct {
-	Service *Service
-	Plan    *Plan
-	Values  valueVars
-	Release releaseVars
-	Cluster clusterVars
+	Service  *Service
+	Plan     *Plan
+	Values   valueVars
+	Release  releaseVars
+	Cluster  clusterVars
+	Services *servicesVars
 }
 
 type valueVars map[string]interface{}
@@ -344,36 +345,87 @@ type releaseVars struct {
 }
 
 type clusterVars struct {
-	Address    string
-	Hostname   string
-	helmStatus helm.Status
+	Address  string
+	Hostname string
 }
 
-func (c clusterVars) Port(port ...int) string {
-	for clusterPort, nodePort := range c.helmStatus.NodePorts {
-		if len(port) == 0 || port[0] == clusterPort {
-			return strconv.Itoa(nodePort)
-		}
-	}
+type servicesVars struct {
+	services map[string]*helm.Service
+	nodes    []kubectl.Node
+}
 
-	for clusterPort, nodePort := range c.helmStatus.ClusterPorts {
-		if len(port) == 0 || port[0] == clusterPort {
-			return strconv.Itoa(nodePort)
-		}
-	}
-
-	if len(port) > 0 {
-		return strconv.Itoa(port[0])
+func (s *servicesVars) Address(serviceName string, port int) string {
+	svcPort := s.Port(serviceName, port)
+	svcIP := s.IP(serviceName)
+	if len(svcPort) > 0 && len(svcIP) > 0 {
+		return svcIP + ":" + svcPort
 	}
 
 	return ""
 }
 
-func extractAddress(helmStatus helm.Status, kubernetesNodes []kubectl.Node) string {
-	if len(helmStatus.ExternalIPs) > 0 {
-		return helmStatus.ExternalIPs[0]
+func (s *servicesVars) Port(serviceName string, port int) string {
+	// port and service name given, extract port from service
+	if svc, ok := s.services[serviceName]; ok {
+		if mappedPort, ok := svc.PortMapping(port); ok {
+			return strconv.Itoa(mappedPort)
+		}
 	}
 
+	return ""
+}
+
+func (s *servicesVars) FindPort(port int) string {
+	// only port given, find any matching service
+	for _, svc := range s.services {
+		if mappedPort, ok := svc.PortMapping(port); ok {
+			return strconv.Itoa(mappedPort)
+		}
+	}
+
+	return ""
+}
+
+func (s *servicesVars) IP(serviceName string) string {
+	// service name given, extract
+	if svc, ok := s.services[serviceName]; ok {
+		switch svc.Type {
+		case "ClusterIP":
+			return svc.ClusterIP
+		case "NodePort":
+			return extractAddress(s.nodes)
+		case "LoadBalancer":
+			return svc.ExternalIP
+		}
+	}
+
+	return ""
+}
+
+func (s *servicesVars) FindIP() string {
+	// returns first matching service: LoadBalancer > NodePort > ClusterIP
+	for _, svc := range s.services {
+		if svc.Type == "LoadBalancer" {
+			return svc.ExternalIP
+		}
+	}
+
+	for _, svc := range s.services {
+		if svc.Type == "NodePort" {
+			return extractAddress(s.nodes)
+		}
+	}
+
+	for _, svc := range s.services {
+		if svc.Type == "ClusterIP" {
+			return svc.ClusterIP
+		}
+	}
+
+	return ""
+}
+
+func extractAddress(kubernetesNodes []kubectl.Node) string {
 	// return dns name if set as environment variable
 	if value, ok := os.LookupEnv("DOMAIN"); ok {
 		return value
@@ -414,9 +466,12 @@ func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, he
 			Namespace: helmStatus.Namespace,
 		},
 		Cluster: clusterVars{
-			Address:    extractAddress(helmStatus, kubernetesNodes),
-			Hostname:   extractHostname(kubernetesNodes),
-			helmStatus: helmStatus,
+			Address:  extractAddress(kubernetesNodes),
+			Hostname: extractHostname(kubernetesNodes),
+		},
+		Services: &servicesVars{
+			nodes:    kubernetesNodes,
+			services: helmStatus.Services,
 		},
 	}
 

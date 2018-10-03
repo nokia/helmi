@@ -1,0 +1,28 @@
+---
+# this is an example chart, showing the general structure of a catalog file
+service:
+  _id: d3920b2c-7caa-4795-b1f9-c985bb80b77d
+  _name: openiban
+  description: "IBAN Validation as a Service (example)"
+  chart: stable/openiban
+  chart-version: 1.0.0
+  plans:
+  -
+    _id: 22d09b31-3a6c-488c-b75b-ea1b764b2c42
+    _name: v1.0.1-basic-internal
+    description: "OpenIBAN v1.0.1"
+    chart-values:
+      service:
+        type: ClusterIP
+---
+chart-values:
+  service:
+    port: 8080
+  rbac:
+    create: false
+  serviceAccount:
+    create: false
+---
+user-credentials:
+  api: "http://{{ .Services.Address "openiban" .Values.service.port }}/"
+  metrics: "http://{{ .Services.Address "openiban" .Values.service.port }}/metrics"

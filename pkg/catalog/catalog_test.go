@@ -1,11 +1,11 @@
 package catalog
 
 import (
+	"fmt"
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
-	"testing"
 	"reflect"
-	"fmt"
+	"testing"
 )
 
 var def = []byte(`---
@@ -36,11 +36,15 @@ chart-values:
 user-credentials:
     key: "{{ .Values.foo }}"
     plan_key: "{{ .Values.baz }}"
-    addr: "{{ .Cluster.Address }}"
-    hostname: "{{ .Cluster.Hostname }}"
-    port: {{ .Cluster.Port }}
-    translated_port: {{ .Cluster.Port 80 }}
-    fallback_port: {{ .Cluster.Port 8080 }}
+    cluster_addr: "{{ .Cluster.Address }}"
+    cluster_hostname: "{{ .Cluster.Hostname }}"
+    port: {{ .Services.Port "test_service" 7070 }}
+    node_port: {{ .Services.Port "node_service" 8080 }}
+    lb_port: {{ .Services.Port "lb_service" 9090 }}
+    any_port: {{ .Services.FindPort 8080 }}
+    addr: "{{ .Services.Address "test_service" 7070 }}"
+    lb_addr: "{{ .Services.Address "lb_service" 9090 }}"
+    node_addr: "{{ .Services.Address "node_service" 8080 }}"
     namespace: "{{ .Release.Namespace }}"
     nested:
 {{ toYaml .Values.nested | indent 8 }}
@@ -62,11 +66,26 @@ var status = helm.Status{
 	IsFailed:   false,
 	IsDeployed: true,
 
-	DesiredNodes:   1,
-	AvailableNodes: 1,
+	DesiredNodes:    1,
+	AvailableNodes:  1,
+	PendingServices: 0,
 
-	NodePorts: map[int]int{
-		80: 30001,
+	Services: map[string]*helm.Service{
+		"test_service": {
+			Type:         "ClusterIP",
+			ClusterPorts: map[int]int{7070: 7070},
+			ClusterIP:    "10.0.70.70",
+		},
+		"node_service": {
+			Type:      "NodePort",
+			NodePorts: map[int]int{8080: 31008},
+			ClusterIP: "10.0.80.80",
+		},
+		"lb_service": {
+			Type:       "LoadBalancer",
+			NodePorts:  map[int]int{9090: 31009},
+			ExternalIP: "3.3.3.3",
+		},
 	},
 }
 
@@ -123,10 +142,10 @@ func Test_GetChartValues(t *testing.T) {
 	}
 
 	expected := map[string]interface{}{
-		"foo": "bar",
-		"baz": "qux",
+		"foo":      "bar",
+		"baz":      "qux",
 		"password": values["password"], // cheat
-		"nested": map[string]interface{} {
+		"nested": map[string]interface{}{
 			"from_plan": "from plan",
 			"from_vals": "from vals",
 		},
@@ -152,24 +171,20 @@ func Test_GetUserCredentials(t *testing.T) {
 		t.Error(red(err.Error()))
 	}
 
-	// TODO(swicki): re-evaluate if this behavior really make sense
-	expected_port := 0
-	for _, p := range status.NodePorts {
-		// extract first port
-		expected_port = p
-		break
-	}
-
 	expected := map[string]interface{}{
-		"key": values["foo"],
-		"plan_key": values["baz"],
-		"hostname": nodes[0].Hostname,
-		"addr": nodes[0].ExternalIP,
-		"port": expected_port,
-		"translated_port": status.NodePorts[80],
-		"fallback_port": 8080,
-		"namespace": status.Namespace,
-		"nested": map[string]interface{} {
+		"key":              values["foo"],
+		"plan_key":         values["baz"],
+		"cluster_hostname": nodes[0].Hostname,
+		"cluster_addr":     nodes[0].ExternalIP,
+		"port":             7070,
+		"node_port":        31008,
+		"lb_port":          9090,
+		"any_port":         31008,
+		"addr":             "10.0.70.70:7070",
+		"lb_addr":          "3.3.3.3:9090",
+		"node_addr":        "2.2.2.2:31008",
+		"namespace":        status.Namespace,
+		"nested": map[string]interface{}{
 			"from_plan": "from plan",
 			"from_vals": "from vals",
 		},
@@ -182,23 +197,23 @@ func Test_GetUserCredentials(t *testing.T) {
 
 func Test_mergeMaps(t *testing.T) {
 	a := map[string]interface{}{
-		"a" : 1,
-		"b" : 2,
-		"bothmap": map[string]interface{} {
-			"five": 5,
+		"a": 1,
+		"b": 2,
+		"bothmap": map[string]interface{}{
+			"five":        5,
 			"overwritten": nil,
 		},
 		"srcmap": 0.0,
 	}
 
 	b := map[string]interface{}{
-		"a" : 3,
-		"c" : 4,
-		"bothmap": map[string]interface{} {
-			"six": 6,
+		"a": 3,
+		"c": 4,
+		"bothmap": map[string]interface{}{
+			"six":         6,
 			"overwritten": true,
 		},
-		"srcmap": map[string]interface{} {
+		"srcmap": map[string]interface{}{
 			"seven": 7,
 		},
 	}
@@ -206,15 +221,15 @@ func Test_mergeMaps(t *testing.T) {
 	got := mergeMaps(a, b)
 
 	expected := map[string]interface{}{
-		"a" : 3,
-		"b" : 2,
-		"c" : 4,
-		"bothmap": map[string]interface{} {
-			"five": 5,
-			"six": 6,
+		"a": 3,
+		"b": 2,
+		"c": 4,
+		"bothmap": map[string]interface{}{
+			"five":        5,
+			"six":         6,
 			"overwritten": true,
 		},
-		"srcmap": map[string]interface{} {
+		"srcmap": map[string]interface{}{
 			"seven": 7,
 		},
 	}

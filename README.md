@@ -76,8 +76,16 @@ go test ./pkg/* -v
 
 ## Environment Variables
 
-Helmi can use environment variables to define a dns name for connection strings and a username/password for basic authentication.
+Helmi can use environment variables to define an external dns name for connection strings and a username/password for basic authentication.
+The service catalog and referenced Helm charts are also configured using env variables.
 
-To use basic authentication set `USERNAME` and `PASSWORD` environment variables. In the k8s deployment they are read from a secret, see [kube-helmi-secret.yaml](docs/kubernetes/kube-helmi-secret.yaml)
 
-To replace the connection string IPs set an environment variable `DOMAIN`.
+| Name        | Example Value | Description |
+| ------------ | ------- | --------------- |
+| `USERNAME` | `admin` | Basic auth username |
+| `PASSWORD` | `secret` | Basic auth password |
+| `CATALOG_URL` | `http://example.com/catalog.zip` | URL to a zipped catalog folder (can also be a local file path to a mounted volume). |
+| `REPOSITORY_URLS` | `{"monostream":"http://helm-charts.monocloud.io",`<br>`"foo":"https:/user:pass@example.com/path"}` | JSON map of name-url pairs |
+| `DOMAIN` | `cluster.example.com` | External DNS domain used to construct connection strings |
+
+In the k8s deployment, username and password are read from a secret, see [kube-helmi-secret.yaml](docs/kubernetes/kube-helmi-secret.yaml)
