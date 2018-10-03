@@ -1,7 +1,9 @@
 # Helmi Catalog Format
 
 By default, Helmi reads the service catalog from the folder `./catalog`. Each
-`.yml` or `.yaml` within this folder is parsed as a service definition.
+`.yml` or `.yaml` within this folder is parsed as a service definition. Helmi
+is also able to read a ZIP file with the same structure of the `catalog` folder,
+each contained YAML file is treated as a service definition.
 
 A service definition contains of three parts, separated by the `---` yaml
 document delimiter. The first part is parsed verbatim during startup and
