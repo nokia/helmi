@@ -47,7 +47,7 @@ chart-values:
 #   Available template variables: .Service, .Plan, .Values, .Release, .Cluster
 user-credentials:
   hostname: "{{ .Release.Name }}-cassandra.{{ .Release.Namespace }}.svc.cluster.local"
-  port: "{{ .Cluster.Port 8080 }}"
+  port: "{{ .Services.Port "svcname" 8080 }}"
   username: "{{ .Values.username }}"
   password: "{{ .Values.password }}"
 ```
