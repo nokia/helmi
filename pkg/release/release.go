@@ -7,7 +7,6 @@ import (
 	"github.com/monostream/helmi/pkg/kubectl"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"encoding/json"
 	"strings"
 )
 
@@ -28,7 +27,7 @@ func getLogger() *zap.Logger {
 	return logger
 }
 
-func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, acceptsIncomplete bool, parameters json.RawMessage) error {
+func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, acceptsIncomplete bool, parameters map[string]interface{}) error {
 	name := getName(id)
 	logger := getLogger()
 
@@ -37,22 +36,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 
 	chart, chartErr := getChart(service, plan)
 	chartVersion, chartVersionErr := getChartVersion(service, plan)
-	chartValues, valuesErr := service.ChartValues(plan, name)
-	// merge chart values with parameters if passed in request
-	if parameters != nil && valuesErr == nil {
-		paramErr := json.Unmarshal(parameters, &chartValues)
-
-		if paramErr != nil {
-			logger.Error("failed to merge chart-values section",
-				zap.String("id", id),
-				zap.String("name", name),
-				zap.String("serviceId", serviceId),
-				zap.String("planId", planId),
-				zap.Error(paramErr))
-
-			return paramErr
-		}
-	}
+	chartValues, valuesErr := service.ChartValues(plan, name, parameters)
 
 	if chartErr != nil {
 		logger.Error("failed to install release",

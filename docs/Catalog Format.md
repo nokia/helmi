@@ -39,7 +39,7 @@ service:
       replicaMinAvailable: 0
 ---
 # Helm values used when a service is created.
-#   Available template variables: .Service, .Plan
+#   Available template variables: .Service, .Plan, .Release.Name, .Cluster, .Parameters
 chart-values:
   username: "{{ generateUsername }}"
   http_proxy: "{{ env "HTTP_PROXY" }}"

@@ -116,8 +116,16 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 
 func (b *Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
 	spec := brokerapi.ProvisionedServiceSpec{}
-	err := release.Install(&b.catalog, details.ServiceID, details.PlanID, instanceID, asyncAllowed, details.GetRawParameters(),)
 
+	parameters := make(map[string]interface{})
+	if details.RawParameters != nil {
+		err := json.Unmarshal(details.RawParameters, &parameters)
+		if err != nil {
+			return spec, brokerapi.ErrRawParamsInvalid
+		}
+	}
+
+	err := release.Install(&b.catalog, details.ServiceID, details.PlanID, instanceID, asyncAllowed, parameters)
 	if err != nil {
 		exists, existsErr := release.Exists(instanceID)
 

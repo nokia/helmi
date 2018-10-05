@@ -264,7 +264,7 @@ func templateFuncMap() template.FuncMap {
 		shortLen := 63 - len(dnsSuffix)
 		longName := fmt.Sprintf("%s.%s", release, dnsSuffix)
 		if shortLen <= 0 || len(longName) <= 64 {
-			return []string{ longName }
+			return []string{longName}
 		}
 
 		hash := fmt.Sprintf("%x", sha1.Sum([]byte(release)))
@@ -272,7 +272,7 @@ func templateFuncMap() template.FuncMap {
 			shortLen = 8
 		}
 		shortName := fmt.Sprintf("%s.%s", hash[:shortLen], dnsSuffix)
-		return []string{ shortName, longName }
+		return []string{shortName, longName}
 	}
 
 	return f
@@ -315,24 +315,26 @@ func mergeMaps(maps ...map[string]interface{}) map[string]interface{} {
 }
 
 type chartValueVars struct {
-	*Service
-	*Plan
-	Release struct {
+	Service    *Service
+	Plan       *Plan
+	Parameters map[string]interface{}
+	Release    struct {
 		Name string
 	}
 	Cluster *clusterVars
 }
 
-func (s *Service) ChartValues(p *Plan, releaseName string) (map[string]interface{}, error) {
+func (s *Service) ChartValues(p *Plan, releaseName string, params map[string]interface{}) (map[string]interface{}, error) {
 	b := new(bytes.Buffer)
 
 	// since Cluster.Address and Cluster.Hostname are never used in the ChartValues, errors here aren't handled
 	nodes, _ := kubectl.GetNodes()
 
 	data := chartValueVars{
-		Service: s,
-		Plan: p,
-		Release: struct{ Name string }{ Name: releaseName },
+		Service:    s,
+		Plan:       p,
+		Release:    struct{ Name string }{Name: releaseName},
+		Parameters: params,
 		Cluster: &clusterVars{
 			Address:  extractAddress(nodes),
 			Hostname: extractHostname(nodes),
