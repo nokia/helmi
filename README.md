@@ -88,5 +88,7 @@ The service catalog and referenced Helm charts are also configured using env var
 | `REPOSITORY_URLS` | `{"monostream":"http://helm-charts.monocloud.io",`<br>`"foo":"https:/user:pass@example.com/path"}` | JSON map of name-url pairs |
 | `DOMAIN` | `cluster.example.com` | External DNS domain used to construct connection strings |
 | `INGRESS_DOMAIN`  | `cluster.example.com` | Domain used to construct ingress host strings |
+| `TILLER_NAMESPACE`  | `tiller` | K8s namespace of tiller server |
+| `HELM_NAMESPACE`  | `default` | K8s namespace in which Helm charts are deployed |
 
 In the k8s deployment, username and password are read from a secret, see [kube-helmi-secret.yaml](docs/kubernetes/kube-helmi-secret.yaml)

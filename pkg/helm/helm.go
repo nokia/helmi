@@ -80,10 +80,14 @@ func Exists(release string) (bool, error) {
 }
 
 func Install(release string, chart string, version string, values map[string]interface{}, acceptsIncomplete bool) error {
-	arguments := []string{}
+	arguments := make([]string, 0)
 
 	arguments = append(arguments, "install", chart)
 	arguments = append(arguments, "--name", release)
+
+	if namespace, ok := os.LookupEnv("HELM_NAMESPACE"); ok {
+		arguments = append(arguments, "--namespace", namespace)
+	}
 
 	if len(version) > 0 {
 		arguments = append(arguments, "--version", version)
