@@ -260,6 +260,21 @@ func templateFuncMap() template.FuncMap {
 	f["generateUsername"] = randomUuid
 	f["generatePassword"] = randomUuid
 
+	f["generateDnsNames"] = func(release string, dnsSuffix string) []string {
+		shortLen := 63 - len(dnsSuffix)
+		longName := fmt.Sprintf("%s.%s", release, dnsSuffix)
+		if shortLen <= 0 || len(longName) <= 64 {
+			return []string{ longName }
+		}
+
+		hash := fmt.Sprintf("%x", sha1.Sum([]byte(release)))
+		if shortLen > 8 {
+			shortLen = 8
+		}
+		shortName := fmt.Sprintf("%s.%s", hash[:shortLen], dnsSuffix)
+		return []string{ shortName, longName }
+	}
+
 	return f
 }
 
