@@ -66,9 +66,9 @@ func Parse(name string) (Catalog, error) {
 
 	if fi.IsDir() {
 		return ParseDir(name)
-	} else {
-		return ParseZipFile(name)
 	}
+
+	return ParseZipFile(name)
 }
 
 // Parses all `.yaml` and `.yml` files in the specified path as service definitions

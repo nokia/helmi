@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -32,7 +31,7 @@ func parseHelmReposFromJSON(helmReposJSON string) error {
 	for repo, url := range helmRepos {
 		err := helm.RepoAdd(repo, url)
 		if err != nil {
-			return errors.New(fmt.Sprintf("failed to update repository %s: %s", repo, err))
+			return fmt.Errorf("failed to update repository %s: %s", repo, err)
 		}
 	}
 
