@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func red(msg string) (string){
+func red(msg string) string {
 	return "\033[31m" + msg + "\033[39m\n\n"
 }
 
@@ -18,7 +18,7 @@ func helperCommand(command string, args ...string) *exec.Cmd {
 	return cmd
 }
 
-func Test_HelperProcess(t *testing.T){
+func Test_HelperProcess(t *testing.T) {
 	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
 		return
 	}

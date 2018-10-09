@@ -2,6 +2,7 @@ package release
 
 import (
 	"testing"
+
 	"github.com/monostream/helmi/pkg/catalog"
 )
 
@@ -10,7 +11,7 @@ var csp = catalog.Plan{
 	Name:        "test_plan",
 	Description: "plan_description",
 
-	Chart: "plan_chart",
+	Chart:        "plan_chart",
 	ChartVersion: "1.2.3",
 }
 var cs = catalog.Service{
@@ -18,7 +19,7 @@ var cs = catalog.Service{
 	Name:        "test_service",
 	Description: "service_description",
 
-	Chart: "service_chart",
+	Chart:        "service_chart",
 	ChartVersion: "1.2.3",
 
 	Plans: []catalog.Plan{
@@ -26,7 +27,7 @@ var cs = catalog.Service{
 	},
 }
 
-func red(msg string) (string){
+func red(msg string) string {
 	return "\033[31m" + msg + "\033[39m\n\n"
 }
 

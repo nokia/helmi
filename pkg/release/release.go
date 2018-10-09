@@ -89,7 +89,6 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 		zap.String("planId", planId),
 		zap.String("namespace", namespace))
 
-
 	return nil
 }
 
