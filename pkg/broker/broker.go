@@ -2,8 +2,10 @@ package broker
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
@@ -114,6 +116,25 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	return services, nil
 }
 
+func namespaceFromContext(raw json.RawMessage) string {
+	if namespace, ok := os.LookupEnv("HELM_NAMESPACE"); ok {
+		return namespace
+	}
+
+	var cfContext struct {
+		Platform  string `json:"platform"`
+		SpaceGUID string `json:"space_guid"`
+		OrgGUID   string `json:"organization_guid"`
+	}
+
+	err := json.Unmarshal(raw, &cfContext)
+	if err == nil && cfContext.Platform == "cloudfoundry" && len(cfContext.SpaceGUID) >= 8 {
+		return fmt.Sprintf("cf-%s", cfContext.SpaceGUID[:8])
+	}
+
+	return ""
+}
+
 func (b *Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
 	spec := brokerapi.ProvisionedServiceSpec{}
 
@@ -125,7 +146,8 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		}
 	}
 
-	err := release.Install(&b.catalog, details.ServiceID, details.PlanID, instanceID, asyncAllowed, parameters)
+	namespace := namespaceFromContext(details.RawContext)
+	err := release.Install(&b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters)
 	if err != nil {
 		exists, existsErr := release.Exists(instanceID)
 

@@ -27,7 +27,7 @@ func getLogger() *zap.Logger {
 	return logger
 }
 
-func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, acceptsIncomplete bool, parameters map[string]interface{}) error {
+func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, namespace string, acceptsIncomplete bool, parameters map[string]interface{}) error {
 	name := getName(id)
 	logger := getLogger()
 
@@ -39,7 +39,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 	chartValues, valuesErr := service.ChartValues(plan, name, parameters)
 
 	if chartErr != nil {
-		logger.Error("failed to install release",
+		logger.Error("failed to read chart from catalog definition",
 			zap.String("id", id),
 			zap.String("name", name),
 			zap.String("serviceId", serviceId),
@@ -64,7 +64,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 		return valuesErr
 	}
 
-	err := helm.Install(name, chart, chartVersion, chartValues, acceptsIncomplete)
+	err := helm.Install(name, chart, chartVersion, chartValues, namespace, acceptsIncomplete)
 
 	if err != nil {
 		logger.Error("failed to install release",
@@ -74,6 +74,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("chart-version", chartVersion),
 			zap.String("serviceId", serviceId),
 			zap.String("planId", planId),
+			zap.String("namespace", namespace),
 			zap.Error(err))
 
 		return err
@@ -85,7 +86,9 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 		zap.String("chart", chart),
 		zap.String("chart-version", chartVersion),
 		zap.String("serviceId", serviceId),
-		zap.String("planId", planId))
+		zap.String("planId", planId),
+		zap.String("namespace", namespace))
+
 
 	return nil
 }

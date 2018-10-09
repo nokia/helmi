@@ -79,13 +79,13 @@ func Exists(release string) (bool, error) {
 	return false, err
 }
 
-func Install(release string, chart string, version string, values map[string]interface{}, acceptsIncomplete bool) error {
+func Install(release string, chart string, version string, values map[string]interface{}, namespace string, acceptsIncomplete bool) error {
 	arguments := make([]string, 0)
 
 	arguments = append(arguments, "install", chart)
 	arguments = append(arguments, "--name", release)
 
-	if namespace, ok := os.LookupEnv("HELM_NAMESPACE"); ok {
+	if len(namespace) > 0 {
 		arguments = append(arguments, "--namespace", namespace)
 	}
 
