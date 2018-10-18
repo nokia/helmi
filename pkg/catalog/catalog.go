@@ -3,6 +3,7 @@ package catalog
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/md5"
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
@@ -250,6 +251,15 @@ func templateFuncMap() template.FuncMap {
 		passwordSum := []byte(s.Sum(nil))
 
 		return "{SHA}" + base64.StdEncoding.EncodeToString(passwordSum)
+	}
+
+	f["md5sum"] = func(str string) string {
+		s := md5.New()
+
+		s.Write([]byte(str))
+		md5sum := []byte(s.Sum(nil))
+
+		return fmt.Sprintf("%x", md5sum)
 	}
 
 	randomUuid := func() string {
