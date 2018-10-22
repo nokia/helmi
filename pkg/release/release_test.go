@@ -69,3 +69,47 @@ func Test_GetChartVersion(t *testing.T) {
 		t.Error(red("incorrect chart version returned"))
 	}
 }
+
+func Test_Healthchecks(t *testing.T) {
+	// url -> shouldSucceed
+	healthChecks := map[string]bool {
+		"http://httpbin.org/status/200": true,
+		"http://httpbin.org/status/302": true,
+		"http://httpbin.org/status/404": false,
+		"http://httpbin.org/status/500": false,
+		"http://httpbin.org/absolute-redirect/1": true,
+		"http://httpbin.org/absolute-redirect/100": false,
+		"http://httpbin.org/redirect-to?url=http%3A%2F%2Fhttpbin.org%2Fstatus%2F404": false,
+		"http://user:pass@httpbin.org/basic-auth/user/pass": true,
+		"http://user:wrong@httpbin.org/basic-auth/user/pass": false,
+
+		"https://httpbin.org/status/200": true,
+		"https://httpbin.org/status/500": false,
+		"https://extended-validation.badssl.com": true,
+		"https://wrong.host.badssl.com": false,
+		"https://self-signed.badssl.com": false,
+		"https://untrusted-root.badssl.com": false,
+
+		"tcp://8.8.8.8:53": true,
+		"tcp://localhost:1": false,
+		"tcp://missing-port": false,
+
+		"tls://badssl.com:443": true,
+		"tls://expired.badssl.com:443": false,
+		"tls://self-signed.badssl.com:443": false,
+		"tls://wrong.host.badssl.com:443": false,
+	}
+
+	for endpoint, shouldSucceed := range healthChecks {
+		err := checkHealth(endpoint)
+		if shouldSucceed {
+			if err != nil {
+				t.Errorf(red("health check %s failed unexpectedly: %s"), endpoint, err)
+			}
+		} else {
+			if err == nil {
+				t.Errorf(red("health check %s succeeded unexpectedly"), endpoint)
+			}
+		}
+	}
+}

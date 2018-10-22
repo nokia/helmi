@@ -163,7 +163,7 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 func (b *Broker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
 	spec := brokerapi.DeprovisionServiceSpec{}
 	err := release.Delete(instanceID)
-	if err == release.ReleaseNotFoundError {
+	if err == release.ErrReleaseNotFound {
 		return spec, brokerapi.ErrInstanceDoesNotExist
 	}
 	return spec, err
@@ -174,7 +174,7 @@ func (b *Broker) Bind(ctx context.Context, instanceID, bindingID string, details
 	credentials, err := release.GetCredentials(&b.catalog, details.ServiceID, details.PlanID, instanceID)
 
 	if err != nil {
-		if err == release.ReleaseNotFoundError {
+		if err == release.ErrReleaseNotFound {
 			return binding, brokerapi.ErrInstanceDoesNotExist
 		}
 
@@ -199,19 +199,19 @@ func (b *Broker) Unbind(ctx context.Context, instanceID, bindingID string, detai
 
 func (b *Broker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
 	op := brokerapi.LastOperation{}
-	status, err := release.GetStatus(instanceID)
+	health, err := release.GetHealth(&b.catalog, instanceID)
 
 	if err != nil {
-		if err == release.ReleaseNotFoundError {
+		if err == release.ErrReleaseNotFound {
 			return op, brokerapi.ErrInstanceDoesNotExist
 		}
 
 		return op, err
 	}
 
-	if status.IsFailed {
+	if health.IsFailed || health.IsTimedOut() {
 		op.State = "failed"
-	} else if status.IsAvailable {
+	} else if health.IsReady {
 		op.State = "succeeded"
 	} else {
 		op.State = "in progress"

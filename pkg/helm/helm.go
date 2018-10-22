@@ -6,7 +6,6 @@ import (
 	"errors"
 	"gopkg.in/yaml.v2"
 	"net/url"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -54,10 +53,14 @@ type Status struct {
 
 	PendingServices int
 	Services        map[string]*Service
+	DeploymentTime  time.Time
 }
 
 func (s *Status) IsAvailable() bool {
-	return s.AvailableNodes >= s.DesiredNodes && s.PendingServices == 0
+	return !s.IsFailed &&
+		s.IsDeployed &&
+		s.AvailableNodes >= s.DesiredNodes &&
+		s.PendingServices == 0
 }
 
 func Exists(release string) (bool, error) {
@@ -236,6 +239,7 @@ func GetStatus(release string) (Status, error) {
 		if strings.HasPrefix(line, DeploymentTimePrefix) {
 			loc, _ := time.LoadLocation("Local")
 			lastDeploymentTime, _ = time.ParseInLocation(time.ANSIC, strings.TrimPrefix(line, DeploymentTimePrefix), loc)
+			status.DeploymentTime = lastDeploymentTime
 		}
 
 		// deployment columns
@@ -348,16 +352,6 @@ func GetStatus(release string) (Status, error) {
 		}
 
 		_ = lastResource
-	}
-
-	// timeout
-	timeout, exists := os.LookupEnv("TIMEOUT")
-	if !exists {
-		timeout = "30m"
-	}
-	duration, _ := time.ParseDuration(timeout)
-	if time.Now().After(lastDeploymentTime.Add(duration)) && !status.IsAvailable() {
-		status.IsFailed = true
 	}
 
 	return status, err

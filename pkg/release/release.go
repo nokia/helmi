@@ -1,21 +1,41 @@
 package release
 
 import (
+	"crypto/tls"
 	"errors"
+	"fmt"
 	"github.com/monostream/helmi/pkg/catalog"
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
 	"strings"
+	"time"
 )
 
-var ReleaseNotFoundError = errors.New("release not found")
+var ErrReleaseNotFound = errors.New("release not found")
 
-type Status struct {
-	IsFailed    bool
-	IsDeployed  bool
-	IsAvailable bool
+type Health struct {
+	IsFailed       bool
+	IsReady        bool
+	deploymentTime time.Time
+}
+
+func (h *Health) IsTimedOut() bool {
+	timeout, exists := os.LookupEnv("TIMEOUT")
+	if !exists {
+		timeout = "30m"
+	}
+	duration, _ := time.ParseDuration(timeout)
+	if time.Now().After(h.deploymentTime.Add(duration)) && !h.IsReady {
+		return true
+	}
+
+	return false
 }
 
 func getLogger() *zap.Logger {
@@ -124,7 +144,7 @@ func Delete(id string) error {
 				zap.String("id", id),
 				zap.String("name", name))
 
-			return ReleaseNotFoundError
+			return ErrReleaseNotFound
 		}
 
 		logger.Error("failed to delete release",
@@ -142,21 +162,19 @@ func Delete(id string) error {
 	return nil
 }
 
-func GetStatus(id string) (Status, error) {
+func GetHealth(c *catalog.Catalog, id string) (Health, error) {
 	name := getName(id)
 	logger := getLogger()
 
 	status, err := helm.GetStatus(name)
-
 	if err != nil {
 		exists, existsErr := helm.Exists(name)
-
 		if existsErr == nil && !exists {
 			logger.Info("asked status for deleted release",
 				zap.String("id", id),
 				zap.String("name", name))
 
-			return Status{}, ReleaseNotFoundError
+			return Health{}, ErrReleaseNotFound
 		}
 
 		logger.Error("failed to get release status",
@@ -164,18 +182,79 @@ func GetStatus(id string) (Status, error) {
 			zap.String("name", name),
 			zap.Error(err))
 
-		return Status{}, err
+		return Health{}, err
 	}
 
-	logger.Debug("sending release status",
-		zap.String("id", id),
-		zap.String("name", name))
+	health := Health{
+		IsFailed:       status.IsFailed,
+		IsReady:        false,
+		deploymentTime: status.DeploymentTime,
+	}
 
-	return Status{
-		IsFailed:    status.IsFailed,
-		IsDeployed:  status.IsDeployed,
-		IsAvailable: status.IsAvailable(),
-	}, nil
+	if !status.IsAvailable() {
+		return health, nil
+	}
+
+	values, err := helm.GetValues(name)
+	if err != nil {
+		logger.Error("failed to get helm values",
+			zap.String("id", id),
+			zap.String("name", name),
+			zap.Error(err))
+
+		return Health{}, err
+	}
+
+	metadata, err := catalog.ExtractMetadata(values)
+	if err != nil {
+		logger.Error("failed to fetch helmi metadata",
+			zap.String("id", id),
+			zap.String("name", name),
+			zap.Error(err))
+
+		return Health{}, err
+	}
+
+	service := c.Service(metadata.ServiceId)
+	plan := service.Plan(metadata.PlanId)
+
+	nodes, err := kubectl.GetNodes()
+	if err != nil {
+		logger.Error("failed to get kubernetes nodes",
+			zap.String("id", id),
+			zap.String("name", name),
+			zap.Error(err))
+
+		return Health{}, err
+	}
+
+	release, err := service.ReleaseSection(plan, nodes, status, values)
+	if err != nil {
+		logger.Error("failed to parse user credentials",
+			zap.String("id", id),
+			zap.String("name", name),
+			zap.Error(err))
+
+		return Health{}, err
+	}
+
+	checkFailed := false
+	for _, healthCheckURL := range release.HealthCheckURLs {
+		err = checkHealth(healthCheckURL)
+		if err != nil {
+			logger.Info("health check failed",
+				zap.String("id", id),
+				zap.String("name", name),
+				zap.String("url", healthCheckURL),
+				zap.Error(err),
+			)
+			checkFailed = true
+			break
+		}
+	}
+
+	health.IsReady = !checkFailed
+	return health, nil
 }
 
 func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, id string) (map[string]interface{}, error) {
@@ -194,7 +273,7 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 				zap.String("id", id),
 				zap.String("name", name))
 
-			return nil, ReleaseNotFoundError
+			return nil, ErrReleaseNotFound
 		}
 
 		logger.Error("failed to get release status",
@@ -230,7 +309,7 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 		return nil, err
 	}
 
-	credentials, err := service.UserCredentials(plan, nodes, status, values)
+	release, err := service.ReleaseSection(plan, nodes, status, values)
 	if err != nil {
 		logger.Error("failed to parse user credentials",
 			zap.String("id", id),
@@ -244,7 +323,7 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 		zap.String("id", id),
 		zap.String("name", name))
 
-	return credentials, nil
+	return release.UserCredentials, nil
 }
 
 func getName(value string) string {
@@ -283,4 +362,69 @@ func getChartVersion(service *catalog.Service, plan *catalog.Plan) (string, erro
 	}
 
 	return "", errors.New("no helm chart version specified")
+}
+
+const healthCheckTimeout = time.Second * 10
+
+func checkHealth(endpoint string) error {
+	info, err := url.Parse(endpoint)
+	if err != nil {
+		return err
+	}
+
+	switch info.Scheme {
+	case "http":
+		return checkHealthHTTP(endpoint)
+	case "https":
+		return checkHealthHTTP(endpoint)
+	case "tcp":
+		return checkHealthTCP(info.Host)
+	case "tls":
+		return checkHealthTLS(info.Host)
+	default:
+		return fmt.Errorf("unsupported url scheme: %s", info.Scheme)
+	}
+
+	return nil
+}
+
+func checkHealthHTTP(url string) error {
+	client := &http.Client{
+		Timeout: healthCheckTimeout,
+	}
+	res, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode > 399 {
+		return fmt.Errorf("health check returned http status %d", res.StatusCode)
+	}
+
+	return nil
+}
+
+func checkHealthTCP(address string) error {
+	conn, err := net.DialTimeout("tcp", address, healthCheckTimeout)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	return nil
+}
+
+func checkHealthTLS(address string) error {
+	config := &tls.Config{
+		// use host CAs
+		RootCAs: nil,
+	}
+	dialer := &net.Dialer{
+		Timeout: healthCheckTimeout,
+	}
+	conn, err := tls.DialWithDialer(dialer, "tcp", address, config)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	return conn.Handshake()
 }

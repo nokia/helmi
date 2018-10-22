@@ -136,7 +136,7 @@ func Test_GetChartValues(t *testing.T) {
 	c := getCatalog(t)
 	s := c.Service("12345")
 	p := s.Plan("67890")
-	values, err := s.ChartValues(p)
+	values, err := s.ChartValues(p, "RELEASE-NAME", nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
@@ -148,6 +148,10 @@ func Test_GetChartValues(t *testing.T) {
 		"nested": map[string]interface{}{
 			"from_plan": "from plan",
 			"from_vals": "from vals",
+		},
+		metadataKey: map[string]interface{}{
+			metadataServiceIdKey: s.Id,
+			metadataPlanIdKey: p.Id,
 		},
 	}
 
@@ -161,12 +165,12 @@ func Test_GetUserCredentials(t *testing.T) {
 	s := c.Service("12345")
 	p := s.Plan("67890")
 
-	values, err := s.ChartValues(p)
+	values, err := s.ChartValues(p, "RELEASE-NAME", nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
 
-	credentials, err := s.UserCredentials(p, nodes, status, values)
+	release, err := s.ReleaseSection(p, nodes, status, values)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
@@ -190,6 +194,7 @@ func Test_GetUserCredentials(t *testing.T) {
 		},
 	}
 
+	credentials := release.UserCredentials
 	if !reflect.DeepEqual(expected, credentials) {
 		t.Error(red(fmt.Sprintf("expected %#v, got  %#v", expected, credentials)))
 	}
