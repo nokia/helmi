@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -22,6 +23,12 @@ import (
 
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
+)
+
+const (
+	metadataKey          = "__metadata"
+	metadataServiceIdKey = "helmiServiceId"
+	metadataPlanIdKey    = "helmiPlanId"
 )
 
 type Catalog struct {
@@ -52,6 +59,11 @@ type Plan struct {
 	ChartValues  map[interface{}]interface{} `yaml:"chart-values"`
 
 	UserCredentials map[interface{}]interface{} `yaml:"user-credentials"`
+}
+
+type Release struct {
+	UserCredentials map[string]interface{}
+	HealthCheckURLs []string
 }
 
 // Parses any catalog format: local directories, local zip archives or zip archive urls
@@ -334,6 +346,32 @@ type chartValueVars struct {
 	Cluster *clusterVars
 }
 
+type Metadata struct {
+	ServiceId string
+	PlanId    string
+}
+
+func ExtractMetadata(helmValues map[string]interface{}) (Metadata, error) {
+	// note: this assumes helm values was unmarshaled using yaml.v2 (thus map[interface{}]interface{})
+	metadataMap, hasMetadata := helmValues[metadataKey].(map[interface{}]interface{})
+	if !hasMetadata {
+		return Metadata{}, errors.New("failed to fetch helmi metadata from helm values")
+	}
+
+	serviceId, hasServiceId := metadataMap[metadataServiceIdKey].(string)
+	planId, hasPlanId := metadataMap[metadataPlanIdKey].(string)
+	if !(hasServiceId && hasPlanId) {
+		return Metadata{}, errors.New("incomplete helmi metadata in helm values")
+	}
+
+	metadata := Metadata{
+		ServiceId: serviceId,
+		PlanId:    planId,
+	}
+
+	return metadata, nil
+}
+
 func (s *Service) ChartValues(p *Plan, releaseName string, params map[string]interface{}) (map[string]interface{}, error) {
 	b := new(bytes.Buffer)
 
@@ -364,11 +402,18 @@ func (s *Service) ChartValues(p *Plan, releaseName string, params map[string]int
 		return nil, err
 	}
 
+	metadata := map[string]interface{}{
+		metadataKey: map[string]interface{}{
+			metadataServiceIdKey: s.Id,
+			metadataPlanIdKey:    p.Id,
+		},
+	}
+
 	serviceValues := toStringMap(v.ChartValues)
 	planValues := toStringMap(p.ChartValues)
-	res := mergeMaps(serviceValues, planValues)
+	values := mergeMaps(serviceValues, planValues, metadata)
 
-	return res, nil
+	return values, nil
 }
 
 type credentialVars struct {
@@ -506,7 +551,7 @@ func extractHostname(kubernetesNodes []kubectl.Node) string {
 	return ""
 }
 
-func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, helmStatus helm.Status, values map[string]interface{}) (map[string]interface{}, error) {
+func (s *Service) ReleaseSection(plan *Plan, kubernetesNodes []kubectl.Node, helmStatus helm.Status, values map[string]interface{}) (*Release, error) {
 	env := credentialVars{
 		Service: s,
 		Plan:    plan,
@@ -531,15 +576,23 @@ func (s *Service) UserCredentials(plan *Plan, kubernetesNodes []kubectl.Node, he
 		return nil, err
 	}
 
-	var v struct {
+	var section struct {
 		UserCredentials map[interface{}]interface{} `yaml:"user-credentials"`
+		HealthCheckURLs []string                    `yaml:"health-checks"`
 	}
-	err = yaml.Unmarshal(b.Bytes(), &v)
+	err = yaml.Unmarshal(b.Bytes(), &section)
 	if err != nil {
 		return nil, err
 	}
 
-	serviceCreds := toStringMap(v.UserCredentials)
+	serviceCreds := toStringMap(section.UserCredentials)
 	planCreds := toStringMap(plan.UserCredentials)
-	return mergeMaps(serviceCreds, planCreds), nil
+	credentials := mergeMaps(serviceCreds, planCreds)
+
+	release := &Release{
+		UserCredentials: credentials,
+		HealthCheckURLs: section.HealthCheckURLs,
+	}
+
+	return release, nil
 }

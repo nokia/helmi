@@ -52,4 +52,8 @@ user-credentials:
   port: "{{ .Services.Port "svcname" 8080 }}"
   username: "{{ .Values.username }}"
   password: "{{ .Values.password }}"
+# Optional list of URIs to which Helmi must connect successfully before a service is reported ready:
+#   Supported protocols: http, https, tcp, tls
+health-checks:
+  - "http://{{ .Services.Address "svcname" .Values.service.port }}"
 ```
