@@ -26,3 +26,5 @@ chart-values:
 user-credentials:
   api: "http://{{ .Services.Address "openiban" .Values.service.port }}/"
   metrics: "http://{{ .Services.Address "openiban" .Values.service.port }}/metrics"
+health-checks:
+  - "http://{{ .Services.Address "openiban" .Values.service.port }}/metrics"
