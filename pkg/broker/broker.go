@@ -162,12 +162,10 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 
 func (b *Broker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
 	spec := brokerapi.DeprovisionServiceSpec{}
-	exists, err := release.Exists(instanceID)
-	if err == nil && !exists {
+	err := release.Delete(instanceID)
+	if err == release.ReleaseNotFoundError {
 		return spec, brokerapi.ErrInstanceDoesNotExist
 	}
-
-	err = release.Delete(instanceID)
 	return spec, err
 }
 
@@ -176,9 +174,7 @@ func (b *Broker) Bind(ctx context.Context, instanceID, bindingID string, details
 	credentials, err := release.GetCredentials(&b.catalog, details.ServiceID, details.PlanID, instanceID)
 
 	if err != nil {
-		exists, existsErr := release.Exists(instanceID)
-
-		if existsErr == nil && !exists {
+		if err == release.ReleaseNotFoundError {
 			return binding, brokerapi.ErrInstanceDoesNotExist
 		}
 
@@ -206,8 +202,7 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID, operationData st
 	status, err := release.GetStatus(instanceID)
 
 	if err != nil {
-		exists, existsErr := release.Exists(instanceID)
-		if existsErr == nil && !exists {
+		if err == release.ReleaseNotFoundError {
 			return op, brokerapi.ErrInstanceDoesNotExist
 		}
 

@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+var ReleaseNotFoundError = errors.New("release not found")
+
 type Status struct {
 	IsFailed    bool
 	IsDeployed  bool
@@ -122,7 +124,7 @@ func Delete(id string) error {
 				zap.String("id", id),
 				zap.String("name", name))
 
-			return nil
+			return ReleaseNotFoundError
 		}
 
 		logger.Error("failed to delete release",
@@ -154,7 +156,7 @@ func GetStatus(id string) (Status, error) {
 				zap.String("id", id),
 				zap.String("name", name))
 
-			return Status{}, err
+			return Status{}, ReleaseNotFoundError
 		}
 
 		logger.Error("failed to get release status",
@@ -192,7 +194,7 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 				zap.String("id", id),
 				zap.String("name", name))
 
-			return nil, err
+			return nil, ReleaseNotFoundError
 		}
 
 		logger.Error("failed to get release status",
