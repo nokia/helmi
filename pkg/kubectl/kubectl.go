@@ -1,8 +1,10 @@
 package kubectl
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -16,6 +18,10 @@ type Node struct {
 	Hostname   string
 	InternalIP string
 	ExternalIP string
+}
+
+type Namespace struct {
+	Name string
 }
 
 func createClient() (*kubernetes.Clientset, error) {
@@ -84,4 +90,33 @@ func GetNodes() ([]Node, error) {
 	}
 
 	return nodes, nil
+}
+
+func GetNamespaces(selector map[string]string) ([]Namespace, error) {
+	namespaces := make([]Namespace, 0)
+
+	client, err := createClient()
+
+	if err != nil {
+		return namespaces, err
+	}
+
+	var labels []string
+	for k, v := range selector {
+		labels = append(labels, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	items, err := client.CoreV1().Namespaces().List(metav1.ListOptions{LabelSelector: strings.Join(labels, ",")})
+
+	if err != nil {
+		return namespaces, err
+	}
+
+	for _, item := range items.Items {
+		namespaces = append(namespaces, Namespace{
+			Name: item.Name,
+		})
+	}
+
+	return namespaces, nil
 }

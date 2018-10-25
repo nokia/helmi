@@ -2,7 +2,7 @@ package broker
 
 import (
 	"context"
-	"fmt"
+	"github.com/monostream/helmi/pkg/kubectl"
 	"log"
 	"net/http"
 	"os"
@@ -117,9 +117,6 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 }
 
 func namespaceFromContext(raw json.RawMessage) string {
-	if namespace, ok := os.LookupEnv("HELM_NAMESPACE"); ok {
-		return namespace
-	}
 
 	var cfContext struct {
 		Platform  string `json:"platform"`
@@ -128,8 +125,21 @@ func namespaceFromContext(raw json.RawMessage) string {
 	}
 
 	err := json.Unmarshal(raw, &cfContext)
-	if err == nil && cfContext.Platform == "cloudfoundry" && len(cfContext.SpaceGUID) >= 8 {
-		return fmt.Sprintf("cf-%s", cfContext.SpaceGUID[:8])
+	if err == nil && cfContext.Platform == "cloudfoundry" {
+
+		selector := map[string]string{
+			"cf-org": cfContext.OrgGUID,
+			"cf-space": cfContext.SpaceGUID,
+		}
+
+		ns, err := kubectl.GetNamespaces(selector)
+		if err == nil && len(ns) > 0 {
+			return ns[0].Name
+		}
+	}
+
+	if namespace, ok := os.LookupEnv("HELM_NAMESPACE"); ok {
+		return namespace
 	}
 
 	return ""
