@@ -29,6 +29,7 @@ service:
 ---
 chart-values:
     foo: "bar"
+    username: "{{ generateUsername }}"
     password: "{{ generatePassword }}"
     nested:
       from_vals: "from vals"
@@ -144,6 +145,7 @@ func Test_GetChartValues(t *testing.T) {
 	expected := map[string]interface{}{
 		"foo":      "bar",
 		"baz":      "qux",
+		"username": values["username"], // cheat
 		"password": values["password"], // cheat
 		"nested": map[string]interface{}{
 			"from_plan": "from plan",
@@ -151,7 +153,7 @@ func Test_GetChartValues(t *testing.T) {
 		},
 		metadataKey: map[string]interface{}{
 			metadataServiceIdKey: s.Id,
-			metadataPlanIdKey: p.Id,
+			metadataPlanIdKey:    p.Id,
 		},
 	}
 

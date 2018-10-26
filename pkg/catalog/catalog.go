@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,7 +18,9 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
+	"github.com/aokoli/goutils"
 	"github.com/satori/go.uuid"
+	"gopkg.in/yaml.v2"
 
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
@@ -274,13 +275,17 @@ func templateFuncMap() template.FuncMap {
 		return fmt.Sprintf("%x", md5sum)
 	}
 
-	randomUuid := func() string {
+	f["generateUsername"] = func() string {
 		s := uuid.NewV4().String()
 		s = strings.Replace(s, "-", "", -1)
-		return s
+		return "u" + s
 	}
-	f["generateUsername"] = randomUuid
-	f["generatePassword"] = randomUuid
+
+	f["generatePassword"] = func() string {
+		prefix, _ := goutils.RandomAlphabetic(1)
+		suffix, _ := goutils.RandomAlphaNumeric(31)
+		return prefix + suffix
+	}
 
 	f["generateDnsNames"] = func(release string, dnsSuffix string) []string {
 		shortLen := 63 - len(dnsSuffix)
