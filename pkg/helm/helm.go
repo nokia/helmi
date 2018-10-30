@@ -21,7 +21,7 @@ type Chart struct {
 	ChartVersion string
 }
 
-func ListCharts() ([]Chart, error) {
+func ListCharts() (map[string]Chart, error) {
 	cmd := exec.Command("helm", "search")
 	output, err := cmd.CombinedOutput()
 
@@ -29,7 +29,7 @@ func ListCharts() ([]Chart, error) {
 		return nil, err
 	}
 
-	var charts []Chart
+	charts := make(map[string]Chart)
 
 	scanner := bufio.NewScanner(bytes.NewReader(output))
 
@@ -72,7 +72,7 @@ func ListCharts() ([]Chart, error) {
 					ChartVersion: chartVersion,
 				}
 
-				charts = append(charts, chart)
+				charts[chart.Name] = chart
 			}
 		}
 	}

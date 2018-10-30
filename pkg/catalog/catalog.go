@@ -19,12 +19,11 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/aokoli/goutils"
+	"github.com/monostream/helmi/pkg/helm"
+	"github.com/monostream/helmi/pkg/kubectl"
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
-
-	"github.com/monostream/helmi/pkg/helm"
-	"github.com/monostream/helmi/pkg/kubectl"
 )
 
 const (
