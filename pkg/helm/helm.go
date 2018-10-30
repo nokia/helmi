@@ -4,13 +4,81 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"gopkg.in/yaml.v2"
 	"net/url"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
+
+type Chart struct {
+	Name        string
+	Description string
+
+	AppVersion   string
+	ChartVersion string
+}
+
+func ListCharts() ([]Chart, error) {
+	cmd := exec.Command("helm", "search")
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var charts []Chart
+
+	scanner := bufio.NewScanner(bytes.NewReader(output))
+
+	const NameLabel = "NAME"
+	const DescriptionLabel = "DESCRIPTION"
+	const AppVersionLabel = "APP VERSION"
+	const ChartVersionLabel = "CHART VERSION"
+
+	columnName := -1
+	columnDescription := -1
+	columnAppVersion := -1
+	columnChartVersion := -1
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		indexName := strings.Index(line, NameLabel)
+		indexDescription := strings.Index(line, DescriptionLabel)
+		indexAppVersion := strings.Index(line, AppVersionLabel)
+		indexChartVersion := strings.Index(line, ChartVersionLabel)
+
+		if indexName >= 0 && indexDescription >= 0 && indexAppVersion >= 0 && indexChartVersion >= 0 {
+			columnName = indexName
+			columnDescription = indexDescription
+
+			columnAppVersion = indexAppVersion
+			columnChartVersion = indexChartVersion
+		} else {
+			if columnName >= 0 && columnDescription >= 0 && columnAppVersion >= 0 && columnChartVersion >= 0 {
+				name := strings.Fields(line[columnName:])[0]
+				description := strings.Fields(line[columnDescription:])[0]
+				appVersion := strings.Fields(line[columnAppVersion:])[0]
+				chartVersion := strings.Fields(line[columnChartVersion:])[0]
+
+				chart := Chart{
+					Name:        name,
+					Description: description,
+
+					AppVersion:   appVersion,
+					ChartVersion: chartVersion,
+				}
+
+				charts = append(charts, chart)
+			}
+		}
+	}
+
+	return charts, nil
+}
 
 type Service struct {
 	Type         string

@@ -1,16 +1,15 @@
 package main
 
 import (
-	"github.com/monostream/helmi/pkg/broker"
-	"github.com/monostream/helmi/pkg/catalog"
-	"github.com/monostream/helmi/pkg/helm"
-
-	"code.cloudfoundry.org/lager"
-
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+
+	"code.cloudfoundry.org/lager"
+	"github.com/monostream/helmi/pkg/broker"
+	"github.com/monostream/helmi/pkg/catalog"
+	"github.com/monostream/helmi/pkg/helm"
 )
 
 func getEnv(key, fallback string) string {
