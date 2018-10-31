@@ -116,13 +116,14 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	return services, nil
 }
 
-func namespaceFromContext(raw json.RawMessage) string {
-
+func namespaceFromContext(raw json.RawMessage) kubectl.Namespace {
 	var cfContext struct {
 		Platform  string `json:"platform"`
 		SpaceGUID string `json:"space_guid"`
 		OrgGUID   string `json:"organization_guid"`
 	}
+
+	var namespace kubectl.Namespace
 
 	err := json.Unmarshal(raw, &cfContext)
 	if err == nil && cfContext.Platform == "cloudfoundry" {
@@ -134,15 +135,20 @@ func namespaceFromContext(raw json.RawMessage) string {
 
 		ns, err := kubectl.GetNamespaces(selector)
 		if err == nil && len(ns) > 0 {
-			return ns[0].Name
+			namespace = ns[0]
 		}
 	}
 
-	if namespace, ok := os.LookupEnv("HELM_NAMESPACE"); ok {
-		return namespace
+	// fill any missing values form env
+	if len(namespace.Name) == 0 {
+		namespace.Name = os.Getenv("HELM_NAMESPACE")
 	}
 
-	return ""
+	if len(namespace.IngressDomain) == 0 {
+		namespace.IngressDomain = os.Getenv("INGRESS_DOMAIN")
+	}
+
+	return namespace
 }
 
 func (b *Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {

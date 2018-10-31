@@ -12,6 +12,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+const HelmiSvcDomain = "monostream.com/helmi-svc-domain"
+
 type Node struct {
 	Name string
 
@@ -22,6 +24,7 @@ type Node struct {
 
 type Namespace struct {
 	Name string
+	IngressDomain string
 }
 
 func createClient() (*kubernetes.Clientset, error) {
@@ -114,7 +117,8 @@ func GetNamespaces(selector map[string]string) ([]Namespace, error) {
 
 	for _, item := range items.Items {
 		namespaces = append(namespaces, Namespace{
-			Name: item.Name,
+			Name:          item.Name,
+			IngressDomain: item.Annotations[HelmiSvcDomain],
 		})
 	}
 

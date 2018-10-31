@@ -27,9 +27,10 @@ import (
 )
 
 const (
-	metadataKey          = "__metadata"
-	metadataServiceIdKey = "helmiServiceId"
-	metadataPlanIdKey    = "helmiPlanId"
+	metadataKey           = "__metadata"
+	metadataServiceIdKey  = "helmiServiceId"
+	metadataPlanIdKey     = "helmiPlanId"
+	metadataIngressDomain = "helmiSvcDomain"
 )
 
 type Catalog struct {
@@ -357,32 +358,46 @@ type chartValueVars struct {
 }
 
 type Metadata struct {
-	ServiceId string
-	PlanId    string
+	ServiceId     string
+	PlanId        string
+	IngressDomain string
 }
 
 func ExtractMetadata(helmValues map[string]interface{}) (Metadata, error) {
-	// note: this assumes helm values was unmarshaled using yaml.v2 (thus map[interface{}]interface{})
-	metadataMap, hasMetadata := helmValues[metadataKey].(map[interface{}]interface{})
-	if !hasMetadata {
-		return Metadata{}, errors.New("failed to fetch helmi metadata from helm values")
+	metadataMap, ok := helmValues[metadataKey].(map[string]interface{})
+	if !ok {
+		// yaml.v2 deserializes into map[interface{}]interface{}
+		rawMetadataMap, ok := helmValues[metadataKey].(map[interface{}]interface{})
+		if !ok {
+			return Metadata{}, errors.New("failed to fetch helmi metadata from helm values")
+		}
+
+		metadataMap = toStringMap(rawMetadataMap)
 	}
 
 	serviceId, hasServiceId := metadataMap[metadataServiceIdKey].(string)
 	planId, hasPlanId := metadataMap[metadataPlanIdKey].(string)
+	ingressDomain, _ := metadataMap[metadataIngressDomain].(string)
+
 	if !(hasServiceId && hasPlanId) {
 		return Metadata{}, errors.New("incomplete helmi metadata in helm values")
 	}
 
+	// backwards-compatibility: old releases might not have an ingress domain in metadata
+	if len(ingressDomain) == 0 {
+		ingressDomain = os.Getenv("INGRESS_DOMAIN")
+	}
+
 	metadata := Metadata{
-		ServiceId: serviceId,
-		PlanId:    planId,
+		ServiceId:     serviceId,
+		PlanId:        planId,
+		IngressDomain: ingressDomain,
 	}
 
 	return metadata, nil
 }
 
-func (s *Service) ChartValues(p *Plan, releaseName string, params map[string]interface{}) (map[string]interface{}, error) {
+func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}) (map[string]interface{}, error) {
 	b := new(bytes.Buffer)
 
 	// since Cluster.Address and Cluster.Hostname are never used in the ChartValues, errors here aren't handled
@@ -394,8 +409,9 @@ func (s *Service) ChartValues(p *Plan, releaseName string, params map[string]int
 		Release:    struct{ Name string }{Name: releaseName},
 		Parameters: params,
 		Cluster: &clusterVars{
-			Address:  extractAddress(nodes),
-			Hostname: extractHostname(nodes),
+			Address:       extractAddress(nodes),
+			Hostname:      extractHostname(nodes),
+			IngressDomain: namespace.IngressDomain,
 		},
 	}
 	err := s.valuesTemplate.Execute(b, data)
@@ -416,6 +432,7 @@ func (s *Service) ChartValues(p *Plan, releaseName string, params map[string]int
 		metadataKey: map[string]interface{}{
 			metadataServiceIdKey: s.Id,
 			metadataPlanIdKey:    p.Id,
+			metadataIngressDomain: namespace.IngressDomain,
 		},
 	}
 
@@ -443,8 +460,9 @@ type releaseVars struct {
 }
 
 type clusterVars struct {
-	Address  string
-	Hostname string
+	Address       string
+	Hostname      string
+	IngressDomain string
 }
 
 type servicesVars struct {
@@ -523,13 +541,6 @@ func (s *servicesVars) FindIP() string {
 	return ""
 }
 
-func (c *clusterVars) IngressDomain() string {
-	if value, ok := os.LookupEnv("INGRESS_DOMAIN"); ok {
-		return value
-	}
-	return ""
-}
-
 func extractAddress(kubernetesNodes []kubectl.Node) string {
 	// return dns name if set as environment variable
 	if value, ok := os.LookupEnv("DOMAIN"); ok {
@@ -562,6 +573,11 @@ func extractHostname(kubernetesNodes []kubectl.Node) string {
 }
 
 func (s *Service) ReleaseSection(plan *Plan, kubernetesNodes []kubectl.Node, helmStatus helm.Status, values map[string]interface{}) (*Release, error) {
+	metadata, err := ExtractMetadata(values)
+	if err != nil {
+		return nil, err
+	}
+
 	env := credentialVars{
 		Service: s,
 		Plan:    plan,
@@ -571,8 +587,9 @@ func (s *Service) ReleaseSection(plan *Plan, kubernetesNodes []kubectl.Node, hel
 			Namespace: helmStatus.Namespace,
 		},
 		Cluster: &clusterVars{
-			Address:  extractAddress(kubernetesNodes),
-			Hostname: extractHostname(kubernetesNodes),
+			Address:       extractAddress(kubernetesNodes),
+			Hostname:      extractHostname(kubernetesNodes),
+			IngressDomain: metadata.IngressDomain,
 		},
 		Services: &servicesVars{
 			nodes:    kubernetesNodes,
@@ -581,7 +598,7 @@ func (s *Service) ReleaseSection(plan *Plan, kubernetesNodes []kubectl.Node, hel
 	}
 
 	b := new(bytes.Buffer)
-	err := s.credentialsTemplate.Execute(b, env)
+	err = s.credentialsTemplate.Execute(b, env)
 	if err != nil {
 		return nil, err
 	}

@@ -49,7 +49,7 @@ func getLogger() *zap.Logger {
 	return logger
 }
 
-func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, namespace string, acceptsIncomplete bool, parameters map[string]interface{}) error {
+func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, namespace kubectl.Namespace, acceptsIncomplete bool, parameters map[string]interface{}) error {
 	name := getName(id)
 	logger := getLogger()
 
@@ -58,7 +58,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 
 	chart, chartErr := getChart(service, plan)
 	chartVersion, chartVersionErr := getChartVersion(service, plan)
-	chartValues, valuesErr := service.ChartValues(plan, name, parameters)
+	chartValues, valuesErr := service.ChartValues(plan, name, namespace, parameters)
 
 	if chartErr != nil {
 		logger.Error("failed to read chart from catalog definition",
@@ -86,7 +86,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 		return valuesErr
 	}
 
-	err := helm.Install(name, chart, chartVersion, chartValues, namespace, acceptsIncomplete)
+	err := helm.Install(name, chart, chartVersion, chartValues, namespace.Name, acceptsIncomplete)
 
 	if err != nil {
 		logger.Error("failed to install release",
@@ -96,7 +96,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("chart-version", chartVersion),
 			zap.String("serviceId", serviceId),
 			zap.String("planId", planId),
-			zap.String("namespace", namespace),
+			zap.String("namespace", namespace.Name),
 			zap.Error(err))
 
 		return err
@@ -109,7 +109,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 		zap.String("chart-version", chartVersion),
 		zap.String("serviceId", serviceId),
 		zap.String("planId", planId),
-		zap.String("namespace", namespace))
+		zap.String("namespace", namespace.Name))
 
 	return nil
 }

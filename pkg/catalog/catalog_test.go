@@ -31,6 +31,7 @@ chart-values:
     foo: "bar"
     username: "{{ generateUsername }}"
     password: "{{ generatePassword }}"
+    hostname: "{{ .Cluster.IngressDomain }}"
     nested:
       from_vals: "from vals"
 ---
@@ -134,10 +135,15 @@ func Test_GetServicePlan(t *testing.T) {
 }
 
 func Test_GetChartValues(t *testing.T) {
+	ns := kubectl.Namespace{
+		Name: "testnamespace",
+		IngressDomain: "test.ingress.domain",
+	}
+
 	c := getCatalog(t)
 	s := c.Service("12345")
 	p := s.Plan("67890")
-	values, err := s.ChartValues(p, "RELEASE-NAME", nil)
+	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
@@ -147,6 +153,7 @@ func Test_GetChartValues(t *testing.T) {
 		"baz":      "qux",
 		"username": values["username"], // cheat
 		"password": values["password"], // cheat
+		"hostname": "test.ingress.domain",
 		"nested": map[string]interface{}{
 			"from_plan": "from plan",
 			"from_vals": "from vals",
@@ -154,6 +161,7 @@ func Test_GetChartValues(t *testing.T) {
 		metadataKey: map[string]interface{}{
 			metadataServiceIdKey: s.Id,
 			metadataPlanIdKey:    p.Id,
+			metadataIngressDomain: ns.IngressDomain,
 		},
 	}
 
@@ -163,11 +171,16 @@ func Test_GetChartValues(t *testing.T) {
 }
 
 func Test_GetUserCredentials(t *testing.T) {
+	ns := kubectl.Namespace{
+		Name: "testnamespace",
+		IngressDomain: "test.ingress.domain",
+	}
+
 	c := getCatalog(t)
 	s := c.Service("12345")
 	p := s.Plan("67890")
 
-	values, err := s.ChartValues(p, "RELEASE-NAME", nil)
+	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
