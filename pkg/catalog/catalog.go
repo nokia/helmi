@@ -284,7 +284,7 @@ func templateFuncMap() template.FuncMap {
 	f["generateUsername"] = func() string {
 		s := uuid.NewV4().String()
 		s = strings.Replace(s, "-", "", -1)
-		return "u" + s
+		return "u" + s[:30]
 	}
 
 	f["generatePassword"] = func() string {
