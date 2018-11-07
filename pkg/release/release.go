@@ -384,8 +384,6 @@ func checkHealth(endpoint string) error {
 	default:
 		return fmt.Errorf("unsupported url scheme: %s", info.Scheme)
 	}
-
-	return nil
 }
 
 func checkHealthHTTP(url string) error {

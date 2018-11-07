@@ -136,7 +136,7 @@ func Test_GetServicePlan(t *testing.T) {
 
 func Test_GetChartValues(t *testing.T) {
 	ns := kubectl.Namespace{
-		Name: "testnamespace",
+		Name:          "testnamespace",
 		IngressDomain: "test.ingress.domain",
 	}
 
@@ -159,8 +159,8 @@ func Test_GetChartValues(t *testing.T) {
 			"from_vals": "from vals",
 		},
 		metadataKey: map[string]interface{}{
-			metadataServiceIdKey: s.Id,
-			metadataPlanIdKey:    p.Id,
+			metadataServiceIdKey:  s.Id,
+			metadataPlanIdKey:     p.Id,
 			metadataIngressDomain: ns.IngressDomain,
 		},
 	}
@@ -172,7 +172,7 @@ func Test_GetChartValues(t *testing.T) {
 
 func Test_GetUserCredentials(t *testing.T) {
 	ns := kubectl.Namespace{
-		Name: "testnamespace",
+		Name:          "testnamespace",
 		IngressDomain: "test.ingress.domain",
 	}
 
