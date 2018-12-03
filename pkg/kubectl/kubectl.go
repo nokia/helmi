@@ -23,7 +23,7 @@ type Node struct {
 }
 
 type Namespace struct {
-	Name string
+	Name          string
 	IngressDomain string
 }
 

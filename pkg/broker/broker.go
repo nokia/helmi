@@ -129,7 +129,7 @@ func namespaceFromContext(raw json.RawMessage) kubectl.Namespace {
 	if err == nil && cfContext.Platform == "cloudfoundry" {
 
 		selector := map[string]string{
-			"cf-org": cfContext.OrgGUID,
+			"cf-org":   cfContext.OrgGUID,
 			"cf-space": cfContext.SpaceGUID,
 		}
 
