@@ -277,8 +277,8 @@ func templateFuncMap() template.FuncMap {
 	}
 
 	f["bcrypt"] = func(str string) string {
-		bytes, _ := bcrypt.GenerateFromPassword([]byte(str), 14)
-		return string(bytes)
+		bcrypted, _ := bcrypt.GenerateFromPassword([]byte(str), 14)
+		return string(bcrypted)
 	}
 
 	f["generateUsername"] = func() string {
@@ -430,8 +430,8 @@ func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Nam
 
 	metadata := map[string]interface{}{
 		metadataKey: map[string]interface{}{
-			metadataServiceIdKey: s.Id,
-			metadataPlanIdKey:    p.Id,
+			metadataServiceIdKey:  s.Id,
+			metadataPlanIdKey:     p.Id,
 			metadataIngressDomain: namespace.IngressDomain,
 		},
 	}

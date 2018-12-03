@@ -437,22 +437,22 @@ func IsReady() error {
 	return err
 }
 
-func RepoAdd(name string, repoURL string) error {
-	url, err := url.Parse(repoURL)
+func RepoAdd(name string, repoURI string) error {
+	uri, err := url.Parse(repoURI)
 	if err != nil {
 		return err
 	}
 
-	// extract and remove username and password form url
+	// extract and remove username and password form uri
 	username := ""
 	password := ""
-	if url.User != nil {
-		username = url.User.Username()
-		password, _ = url.User.Password()
-		url.User = nil
+	if uri.User != nil {
+		username = uri.User.Username()
+		password, _ = uri.User.Password()
+		uri.User = nil
 	}
 
-	args := []string{"repo", "add", name, url.String()}
+	args := []string{"repo", "add", name, uri.String()}
 	if len(username) > 0 {
 		args = append(args, "--username", username)
 	}
