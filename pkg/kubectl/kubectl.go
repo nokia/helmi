@@ -95,6 +95,25 @@ func GetNodes() ([]Node, error) {
 	return nodes, nil
 }
 
+func GetNamespaceByName(name string) (Namespace, error) {
+	client, err := createClient()
+	if err != nil {
+		return Namespace{}, err
+	}
+
+	item, err := client.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
+	if err != nil {
+		return Namespace{}, err
+	}
+
+	namespace := Namespace{
+		Name:          item.Name,
+		IngressDomain: item.Annotations[HelmiSvcDomain],
+	}
+
+	return namespace, nil
+}
+
 func GetNamespaces(selector map[string]string) ([]Namespace, error) {
 	namespaces := make([]Namespace, 0)
 

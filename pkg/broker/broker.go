@@ -117,25 +117,33 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 }
 
 func namespaceFromContext(raw json.RawMessage) kubectl.Namespace {
-	var cfContext struct {
-		Platform  string `json:"platform"`
-		SpaceGUID string `json:"space_guid"`
-		OrgGUID   string `json:"organization_guid"`
+	var context struct {
+		Platform string `json:"platform"`
+		// set if platform=cloudfoundry
+		CFSpaceGUID string `json:"space_guid"`
+		CFOrgGUID   string `json:"organization_guid"`
+		// set if platform=kubernetes
+		K8SNamespace string `json:"namespace"`
+		K8SClusterId string `json:"clusterid"`
 	}
 
 	var namespace kubectl.Namespace
 
-	err := json.Unmarshal(raw, &cfContext)
-	if err == nil && cfContext.Platform == "cloudfoundry" {
+	err := json.Unmarshal(raw, &context)
+	if err == nil {
+		switch context.Platform {
+		case "cloudfoundry":
+			selector := map[string]string{
+				"cf-org":   context.CFOrgGUID,
+				"cf-space": context.CFSpaceGUID,
+			}
 
-		selector := map[string]string{
-			"cf-org":   cfContext.OrgGUID,
-			"cf-space": cfContext.SpaceGUID,
-		}
-
-		ns, err := kubectl.GetNamespaces(selector)
-		if err == nil && len(ns) > 0 {
-			namespace = ns[0]
+			ns, err := kubectl.GetNamespaces(selector)
+			if err == nil && len(ns) > 0 {
+				namespace = ns[0]
+			}
+		case "kubernetes":
+			namespace, _ = kubectl.GetNamespaceByName(context.K8SNamespace)
 		}
 	}
 
@@ -161,6 +169,8 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 			return spec, brokerapi.ErrRawParamsInvalid
 		}
 	}
+
+	log.Printf("%s", string(details.RawContext))
 
 	namespace := namespaceFromContext(details.RawContext)
 	err := release.Install(&b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters)
