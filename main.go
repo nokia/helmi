@@ -20,7 +20,7 @@ func main() {
 
 	catalogSource := getEnv("CATALOG_URL", "./catalog")
 
-	c, err := catalog.Parse(catalogSource)
+	c, err := catalog.New(catalogSource)
 
 	if err != nil {
 		log.Fatal("Failed to parse catalog. Did you set CATALOG_URL correctly? Error:", err)
@@ -84,14 +84,14 @@ func parseHelmReposFromJSON(helmReposJSON string) error {
 	return helm.RepoUpdate()
 }
 
-func verifyChartVersions(catalog catalog.Catalog) error {
+func verifyChartVersions(catalog *catalog.Catalog) error {
 	charts, err := helm.ListCharts()
 
 	if err != nil {
 		return err
 	}
 
-	for _, service := range catalog.Services {
+	for _, service := range catalog.Services() {
 		for _, plan := range service.Plans {
 			chartName := service.Chart
 			chartVersion := service.ChartVersion

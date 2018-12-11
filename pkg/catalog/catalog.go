@@ -15,7 +15,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"text/template"
+	"time"
 
 	"github.com/Masterminds/sprig"
 	"github.com/aokoli/goutils"
@@ -33,8 +35,10 @@ const (
 	metadataIngressDomain = "helmiSvcDomain"
 )
 
+type serviceMap map[string]Service
+
 type Catalog struct {
-	Services map[string]Service
+	services atomic.Value // of type serviceMap
 }
 
 type Service struct {
@@ -69,28 +73,67 @@ type Release struct {
 }
 
 // Parses any catalog format: local directories, local zip archives or zip archive urls
-func Parse(name string) (Catalog, error) {
-	if strings.HasPrefix(name, "http://") || strings.HasPrefix(name, "https://") {
-		return ParseZipURL(name)
+func New(dirOrZipOrZipUrl string) (*Catalog, error) {
+	serviceMap, err := parseAny(dirOrZipOrZipUrl)
+	if err != nil {
+		return nil, err
 	}
 
-	fi, err := os.Stat(name)
+	c := &Catalog{ services: atomic.Value{}	}
+	c.services.Store(serviceMap)
+
+	catalogUpdateInterval := time.Minute * 15
+	if interval, ok := os.LookupEnv("CATALOG_UPDATE_INTERVAL"); ok {
+		dur, err := time.ParseDuration(interval)
+		if err != nil {
+			return nil, fmt.Errorf("invalid env var CATALOG_UPDATE_INTERVAL: %s", err)
+		}
+		catalogUpdateInterval = dur
+	}
+
+	// start go-routine to periodically update the catalog in the background
+	go func() {
+		for {
+			time.Sleep(catalogUpdateInterval)
+
+			err := helm.RepoUpdate()
+			if err != nil {
+				log.Printf("helm repo update failed: %s", err)
+			}
+
+			serviceMap, err := parseAny(dirOrZipOrZipUrl)
+			if err != nil {
+				log.Printf("failed to update catalog: %s", err)
+			} else {
+				// update the reference atomically
+				c.services.Store(serviceMap)
+			}
+		}
+	}()
+
+	return c, nil
+}
+
+func parseAny(dirOrZipOrZipUrl string) (serviceMap, error) {
+	if strings.HasPrefix(dirOrZipOrZipUrl, "http://") || strings.HasPrefix(dirOrZipOrZipUrl, "https://") {
+		return parseZipURL(dirOrZipOrZipUrl)
+	}
+
+	fi, err := os.Stat(dirOrZipOrZipUrl)
 	if err != nil {
-		return Catalog{}, err
+		return nil, err
 	}
 
 	if fi.IsDir() {
-		return ParseDir(name)
+		return parseDir(dirOrZipOrZipUrl)
 	}
 
-	return ParseZipFile(name)
+	return parseZipFile(dirOrZipOrZipUrl)
 }
 
 // Parses all `.yaml` and `.yml` files in the specified path as service definitions
-func ParseDir(dir string) (Catalog, error) {
-	c := Catalog{
-		Services: make(map[string]Service),
-	}
+func parseDir(dir string) (serviceMap, error) {
+	services := make(map[string]Service)
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -108,56 +151,54 @@ func ParseDir(dir string) (Catalog, error) {
 			return ioErr
 		}
 
-		return c.parseServiceDefinition(input, path)
+		return addServiceYaml(services, input, path)
 	})
 
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 
-	if len(c.Services) == 0 {
+	if len(services) == 0 {
 		err = fmt.Errorf("no services found in catalog directory: %s", dir)
-		return c, err
+		return nil, err
 	}
 
-	return c, nil
+	return services, nil
 }
 
-func ParseZipFile(file string) (Catalog, error) {
+func parseZipFile(file string) (serviceMap, error) {
 	zipFile, err := zip.OpenReader(file)
 	if err != nil {
-		return Catalog{}, err
+		return nil, err
 	}
 	defer zipFile.Close()
 
 	return parseZipReader(&zipFile.Reader, file)
 }
 
-func ParseZipURL(url string) (Catalog, error) {
+func parseZipURL(url string) (serviceMap, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return Catalog{}, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return Catalog{}, err
+		return nil, err
 	}
 
 	reader := bytes.NewReader(b)
 	zipReader, err := zip.NewReader(reader, reader.Size())
 	if err != nil {
-		return Catalog{}, err
+		return nil, err
 	}
 
 	return parseZipReader(zipReader, url)
 }
 
-func parseZipReader(zipReader *zip.Reader, path string) (Catalog, error) {
-	c := Catalog{
-		Services: make(map[string]Service),
-	}
+func parseZipReader(zipReader *zip.Reader, path string) (serviceMap, error) {
+	services := make(map[string]Service)
 
 	for _, entry := range zipReader.File {
 		ext := filepath.Ext(entry.Name)
@@ -167,31 +208,31 @@ func parseZipReader(zipReader *zip.Reader, path string) (Catalog, error) {
 
 		f, err := entry.Open()
 		if err != nil {
-			return c, err
+			return nil, err
 		}
 
 		content, err := ioutil.ReadAll(f)
 		f.Close()
 
 		if err != nil {
-			return c, err
+			return nil, err
 		}
 
-		err = c.parseServiceDefinition(content, path)
+		err = addServiceYaml(services, content, path)
 		if err != nil {
-			return c, err
+			return nil, err
 		}
 	}
 
-	if len(c.Services) == 0 {
+	if len(services) == 0 {
 		err := fmt.Errorf("no services found in catalog zip file: %s", path)
-		return c, err
+		return nil, err
 	}
 
-	return c, nil
+	return services, nil
 }
 
-func (c *Catalog) parseServiceDefinition(input []byte, file string) error {
+func addServiceYaml(services serviceMap, input []byte, file string) error {
 	// we have three documents: service, chart-values, user-credentials
 	documents := bytes.Split(input, []byte("\n---"))
 	if n := len(documents); n != 3 {
@@ -218,12 +259,17 @@ func (c *Catalog) parseServiceDefinition(input []byte, file string) error {
 	s.valuesTemplate = valuesTemplate
 	s.credentialsTemplate = credentialsTemplate
 
-	c.Services[s.Id] = s.Service
+	services[s.Id] = s.Service
 	return nil
 }
 
+func (c *Catalog) Services() serviceMap {
+	return c.services.Load().(serviceMap)
+}
+
 func (c *Catalog) Service(id string) *Service {
-	if val, ok := c.Services[id]; ok {
+	services := c.Services()
+	if val, ok := services[id]; ok {
 		return &val
 	}
 	return nil

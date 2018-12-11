@@ -26,13 +26,13 @@ type Config struct {
 }
 
 type Broker struct {
-	catalog catalog.Catalog
+	catalog *catalog.Catalog
 	logger  lager.Logger
 	router  *mux.Router
 	addr    string
 }
 
-func NewBroker(catalog catalog.Catalog, config Config, logger lager.Logger) *Broker {
+func NewBroker(catalog *catalog.Catalog, config Config, logger lager.Logger) *Broker {
 	router := mux.NewRouter()
 	b := &Broker{
 		catalog: catalog,
@@ -83,9 +83,10 @@ func (b *Broker) readinessHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
-	services := make([]brokerapi.Service, 0, len(b.catalog.Services))
+	catalogServices := b.catalog.Services()
+	services := make([]brokerapi.Service, 0, len(catalogServices))
 
-	for _, service := range b.catalog.Services {
+	for _, service := range catalogServices {
 		servicePlans := make([]brokerapi.ServicePlan, 0, len(service.Plans))
 
 		isFree := true
@@ -173,7 +174,7 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	log.Printf("%s", string(details.RawContext))
 
 	namespace := namespaceFromContext(details.RawContext)
-	err := release.Install(&b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters)
+	err := release.Install(b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters)
 	if err != nil {
 		exists, existsErr := release.Exists(instanceID)
 
@@ -197,7 +198,7 @@ func (b *Broker) Deprovision(ctx context.Context, instanceID string, details bro
 
 func (b *Broker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
 	binding := brokerapi.Binding{}
-	credentials, err := release.GetCredentials(&b.catalog, details.ServiceID, details.PlanID, instanceID)
+	credentials, err := release.GetCredentials(b.catalog, details.ServiceID, details.PlanID, instanceID)
 
 	if err != nil {
 		if err == release.ErrReleaseNotFound {
@@ -225,7 +226,7 @@ func (b *Broker) Unbind(ctx context.Context, instanceID, bindingID string, detai
 
 func (b *Broker) LastOperation(ctx context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
 	op := brokerapi.LastOperation{}
-	health, err := release.GetHealth(&b.catalog, instanceID)
+	health, err := release.GetHealth(b.catalog, instanceID)
 
 	if err != nil {
 		if err == release.ErrReleaseNotFound {
