@@ -204,7 +204,7 @@ func Delete(release string) error {
 
 func GetValues(release string) (map[string]interface{}, error) {
 	cmd := exec.Command("helm", "get", "values", release, "--all")
-	output, err := cmd.CombinedOutput()
+	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
 	}
