@@ -18,8 +18,14 @@ func main() {
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 	logger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
 
-	catalogSource := getEnv("CATALOG_URL", "./catalog")
+	// expects a JSON map in the form of "name":"http://url" pairs
+	err := parseHelmReposFromJSON(getEnv("REPOSITORY_URLS", "{}"))
 
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	catalogSource := getEnv("CATALOG_URL", "./catalog")
 	c, err := catalog.New(catalogSource)
 
 	if err != nil {
@@ -27,13 +33,6 @@ func main() {
 	}
 
 	err = verifyChartVersions(c)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// expects a JSON map in the form of "name":"http://url" pairs
-	err = parseHelmReposFromJSON(getEnv("REPOSITORY_URLS", "{}"))
 
 	if err != nil {
 		log.Fatal(err)
