@@ -512,7 +512,7 @@ type clusterVars struct {
 }
 
 type servicesVars struct {
-	services map[string]*helm.Service
+	services map[string]kubectl.Service
 	nodes    []kubectl.Node
 }
 
@@ -526,10 +526,32 @@ func (s *servicesVars) Address(serviceName string, port int) string {
 	return ""
 }
 
+func mapPort(svc kubectl.Service, port int) (int, bool) {
+	switch svc.Type {
+	case "NodePort":
+		if nodePort, ok := svc.NodePorts[port]; ok {
+			// return the mapped port
+			return nodePort, true
+		}
+	case "LoadBalancer":
+		if _, ok := svc.NodePorts[port]; ok {
+			// no mapping needed
+			return port, true
+		}
+	case "ClusterIP":
+		if clusterPort, ok := svc.ClusterPorts[port]; ok {
+			// return the mapped port
+			return clusterPort, true
+		}
+	}
+
+	return 0, false
+}
+
 func (s *servicesVars) Port(serviceName string, port int) string {
 	// port and service name given, extract port from service
 	if svc, ok := s.services[serviceName]; ok {
-		if mappedPort, ok := svc.PortMapping(port); ok {
+		if mappedPort, ok := mapPort(svc, port); ok {
 			return strconv.Itoa(mappedPort)
 		}
 	}
@@ -540,7 +562,7 @@ func (s *servicesVars) Port(serviceName string, port int) string {
 func (s *servicesVars) FindPort(port int) string {
 	// only port given, find any matching service
 	for _, svc := range s.services {
-		if mappedPort, ok := svc.PortMapping(port); ok {
+		if mappedPort, ok := mapPort(svc, port); ok {
 			return strconv.Itoa(mappedPort)
 		}
 	}

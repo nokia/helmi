@@ -27,6 +27,14 @@ type Namespace struct {
 	IngressDomain string
 }
 
+type Service struct {
+	Type         string
+	NodePorts    map[int]int
+	ClusterPorts map[int]int
+	ExternalIP   string
+	ClusterIP    string
+}
+
 func createClient() (*kubernetes.Clientset, error) {
 	homePath := os.Getenv("HOME")
 
@@ -142,4 +150,43 @@ func GetNamespaces(selector map[string]string) ([]Namespace, error) {
 	}
 
 	return namespaces, nil
+}
+
+func GetService(name string, ns string) (Service, error) {
+	client, err := createClient()
+
+	if err != nil {
+		return Service{}, err
+	}
+
+	svc, err := client.CoreV1().Services(ns).Get(name, metav1.GetOptions{})
+
+	if err != nil {
+		return Service{}, err
+	}
+
+	service := Service{
+		Type:         string(svc.Spec.Type),
+		ClusterIP:    svc.Spec.ClusterIP,
+		NodePorts:    make(map[int]int),
+		ClusterPorts: make(map[int]int),
+	}
+
+	for _, p := range svc.Spec.Ports {
+		if p.NodePort != 0 {
+			service.NodePorts[int(p.Port)] = int(p.NodePort)
+		} else {
+			service.ClusterPorts[int(p.Port)] = int(p.Port)
+		}
+	}
+
+	for _, lb := range svc.Status.LoadBalancer.Ingress {
+		if len(lb.Hostname) != 0 {
+			service.ExternalIP = lb.Hostname
+		} else {
+			service.ExternalIP = lb.IP
+		}
+	}
+
+	return service, nil
 }

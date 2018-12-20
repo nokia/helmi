@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/monostream/helmi/pkg/kubectl"
 	"gopkg.in/yaml.v2"
 )
 
@@ -80,36 +81,6 @@ func ListCharts() (map[string]Chart, error) {
 	return charts, nil
 }
 
-type Service struct {
-	Type         string
-	NodePorts    map[int]int
-	ClusterPorts map[int]int
-	ExternalIP   string
-	ClusterIP    string
-}
-
-func (svc *Service) PortMapping(port int) (int, bool) {
-	switch svc.Type {
-	case "NodePort":
-		if nodePort, ok := svc.NodePorts[port]; ok {
-			// return the mapped port
-			return nodePort, true
-		}
-	case "LoadBalancer":
-		if _, ok := svc.NodePorts[port]; ok {
-			// no mapping needed
-			return port, true
-		}
-	case "ClusterIP":
-		if clusterPort, ok := svc.ClusterPorts[port]; ok {
-			// return the mapped port
-			return clusterPort, true
-		}
-	}
-
-	return 0, false
-}
-
 type Status struct {
 	Name       string
 	Namespace  string
@@ -119,16 +90,22 @@ type Status struct {
 	DesiredNodes   int
 	AvailableNodes int
 
-	PendingServices int
-	Services        map[string]*Service
-	DeploymentTime  time.Time
+	Services       map[string]kubectl.Service
+	DeploymentTime time.Time
 }
 
 func (s *Status) IsAvailable() bool {
+	pendingServices := 0
+	for _ , svc := range s.Services {
+		if svc.Type == "LoadBalancer" && len(svc.ExternalIP) == 0 {
+			pendingServices++
+		}
+	}
+
 	return !s.IsFailed &&
 		s.IsDeployed &&
 		s.AvailableNodes >= s.DesiredNodes &&
-		s.PendingServices == 0
+		pendingServices == 0
 }
 
 func Exists(release string) (bool, error) {
@@ -226,7 +203,7 @@ func GetStatus(release string) (Status, error) {
 		DesiredNodes:   0,
 		AvailableNodes: 0,
 
-		Services: make(map[string]*Service),
+		Services: make(map[string]kubectl.Service),
 	}
 
 	if err != nil {
@@ -248,10 +225,6 @@ func GetStatus(release string) (Status, error) {
 	const AvailableLabel = "AVAILABLE"
 
 	const NameLabel = "NAME"
-	const TypeLabel = "TYPE"
-	const ClusterIPLabel = "CLUSTER-IP"
-	const ExternalIPLabel = "EXTERNAL-IP"
-	const PortsLabel = "PORT(S)"
 
 	var lastResource string
 	var lastDeploymentTime time.Time
@@ -261,10 +234,6 @@ func GetStatus(release string) (Status, error) {
 	columnAvailable := -1
 
 	columnName := -1
-	columnType := -1
-	columnClusterIP := -1
-	columnExternalIP := -1
-	columnPort := -1
 
 	// our name
 	status.Name = release
@@ -288,10 +257,6 @@ func GetStatus(release string) (Status, error) {
 			columnAvailable = -1
 
 			columnName = -1
-			columnType = -1
-			columnClusterIP = -1
-			columnExternalIP = -1
-			columnPort = -1
 		}
 
 		if strings.HasPrefix(line, ResourcePrefix) {
@@ -353,73 +318,23 @@ func GetStatus(release string) (Status, error) {
 
 		// service columns
 		indexName := strings.Index(line, NameLabel)
-		indexType := strings.Index(line, TypeLabel)
-		indexClusterIP := strings.Index(line, ClusterIPLabel)
-		indexExternalIP := strings.Index(line, ExternalIPLabel)
-		indexPort := strings.Index(line, PortsLabel)
 
-		if indexName >= 0 && indexType >= 0 && indexClusterIP >= 0 && indexExternalIP >= 0 && indexPort >= 0 {
+		if indexName >= 0 {
 			columnName = indexName
-			columnType = indexType
-			columnClusterIP = indexClusterIP
-			columnExternalIP = indexExternalIP
-			columnPort = indexPort
 		} else {
-			if columnName >= 0 && columnType >= 0 && columnClusterIP >= 0 && columnExternalIP >= 0 && columnPort >= 0 {
+			if columnName >= 0 && lastResource == "v1/Service" {
 				svcName := strings.Fields(line[columnName:])[0]
-				svcName = strings.TrimPrefix(svcName, release+"-")
-				svcType := strings.Fields(line[columnType:])[0]
+				shortName := strings.TrimPrefix(svcName, release+"-")
 
-				status.Services[svcName] = &Service{
-					Type:         svcType,
-					NodePorts:    make(map[int]int),
-					ClusterPorts: make(map[int]int),
+				svc, err := kubectl.GetService(svcName, status.Namespace)
+
+				if err != nil {
+					return Status{}, err
 				}
 
-				// parse cluster ip
-				clusterIP := strings.Fields(line[columnClusterIP:])[0]
-				if clusterIP != "<none>" && clusterIP != "None" {
-					status.Services[svcName].ClusterIP = clusterIP
-				}
-
-				// parse external ip
-				externalIP := strings.Fields(line[columnExternalIP:])[0]
-				if svcType == "LoadBalancer" {
-					if externalIP == "<pending>" {
-						status.PendingServices++
-					} else if externalIP != "<none>" {
-						status.Services[svcName].ExternalIP = externalIP
-					}
-				}
-
-				// parse ports
-				for _, portPair := range strings.Split(strings.Fields(line[columnPort:])[0], ",") {
-					portFields := strings.FieldsFunc(portPair, func(c rune) bool {
-						return c == ':' || c == '/'
-					})
-
-					if len(portFields) == 2 {
-						clusterPort, clusterPortErr := strconv.Atoi(portFields[0])
-
-						if clusterPortErr == nil {
-							status.Services[svcName].ClusterPorts[clusterPort] = clusterPort
-						}
-					}
-
-					if len(portFields) == 3 {
-						nodePort, nodePortErr := strconv.Atoi(portFields[1])
-						clusterPort, clusterPortErr := strconv.Atoi(portFields[0])
-
-						if nodePortErr == nil && clusterPortErr == nil {
-							status.Services[svcName].NodePorts[clusterPort] = nodePort
-							status.Services[svcName].ClusterPorts[clusterPort] = clusterPort
-						}
-					}
-				}
+				status.Services[shortName] = svc
 			}
 		}
-
-		_ = lastResource
 	}
 
 	return status, err
