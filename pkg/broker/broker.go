@@ -118,7 +118,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 }
 
 func namespaceFromContext(raw json.RawMessage) kubectl.Namespace {
-	var context struct {
+	var ctx struct {
 		Platform string `json:"platform"`
 		// set if platform=cloudfoundry
 		CFSpaceGUID string `json:"space_guid"`
@@ -130,13 +130,13 @@ func namespaceFromContext(raw json.RawMessage) kubectl.Namespace {
 
 	var namespace kubectl.Namespace
 
-	err := json.Unmarshal(raw, &context)
+	err := json.Unmarshal(raw, &ctx)
 	if err == nil {
-		switch context.Platform {
+		switch ctx.Platform {
 		case "cloudfoundry":
 			selector := map[string]string{
-				"cf-org":   context.CFOrgGUID,
-				"cf-space": context.CFSpaceGUID,
+				"cf-org":   ctx.CFOrgGUID,
+				"cf-space": ctx.CFSpaceGUID,
 			}
 
 			ns, err := kubectl.GetNamespaces(selector)
@@ -144,7 +144,7 @@ func namespaceFromContext(raw json.RawMessage) kubectl.Namespace {
 				namespace = ns[0]
 			}
 		case "kubernetes":
-			namespace, _ = kubectl.GetNamespaceByName(context.K8SNamespace)
+			namespace, _ = kubectl.GetNamespaceByName(ctx.K8SNamespace)
 		}
 	}
 
