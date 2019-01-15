@@ -35,10 +35,10 @@ const (
 	metadataIngressDomain = "helmiSvcDomain"
 )
 
-type serviceMap map[string]Service
+type ServiceMap map[string]Service
 
 type Catalog struct {
-	services atomic.Value // of type serviceMap
+	services atomic.Value // of type ServiceMap
 }
 
 type Service struct {
@@ -114,7 +114,7 @@ func New(dirOrZipOrZipUrl string) (*Catalog, error) {
 	return c, nil
 }
 
-func parseAny(dirOrZipOrZipUrl string) (serviceMap, error) {
+func parseAny(dirOrZipOrZipUrl string) (ServiceMap, error) {
 	if strings.HasPrefix(dirOrZipOrZipUrl, "http://") || strings.HasPrefix(dirOrZipOrZipUrl, "https://") {
 		return parseZipURL(dirOrZipOrZipUrl)
 	}
@@ -132,7 +132,7 @@ func parseAny(dirOrZipOrZipUrl string) (serviceMap, error) {
 }
 
 // Parses all `.yaml` and `.yml` files in the specified path as service definitions
-func parseDir(dir string) (serviceMap, error) {
+func parseDir(dir string) (ServiceMap, error) {
 	services := make(map[string]Service)
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -166,7 +166,7 @@ func parseDir(dir string) (serviceMap, error) {
 	return services, nil
 }
 
-func parseZipFile(file string) (serviceMap, error) {
+func parseZipFile(file string) (ServiceMap, error) {
 	zipFile, err := zip.OpenReader(file)
 	if err != nil {
 		return nil, err
@@ -176,7 +176,7 @@ func parseZipFile(file string) (serviceMap, error) {
 	return parseZipReader(&zipFile.Reader, file)
 }
 
-func parseZipURL(url string) (serviceMap, error) {
+func parseZipURL(url string) (ServiceMap, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ func parseZipURL(url string) (serviceMap, error) {
 	return parseZipReader(zipReader, url)
 }
 
-func parseZipReader(zipReader *zip.Reader, path string) (serviceMap, error) {
+func parseZipReader(zipReader *zip.Reader, path string) (ServiceMap, error) {
 	services := make(map[string]Service)
 
 	for _, entry := range zipReader.File {
@@ -232,7 +232,7 @@ func parseZipReader(zipReader *zip.Reader, path string) (serviceMap, error) {
 	return services, nil
 }
 
-func addServiceYaml(services serviceMap, input []byte, file string) error {
+func addServiceYaml(services ServiceMap, input []byte, file string) error {
 	// we have three documents: service, chart-values, user-credentials
 	documents := bytes.Split(input, []byte("\n---"))
 	if n := len(documents); n != 3 {
@@ -263,8 +263,8 @@ func addServiceYaml(services serviceMap, input []byte, file string) error {
 	return nil
 }
 
-func (c *Catalog) Services() serviceMap {
-	return c.services.Load().(serviceMap)
+func (c *Catalog) Services() ServiceMap {
+	return c.services.Load().(ServiceMap)
 }
 
 func (c *Catalog) Service(id string) *Service {
