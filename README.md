@@ -26,7 +26,7 @@ go build
 ```console
 # create serviceaccount, clusterrolebinding, deployment, service and an optional secret for basic authorization
 kubectl create -f docs/kubernetes/kube-helmi-rbac.yaml
-kubectl create -f docs/kube-helmi-secret.yaml
+kubectl create -f docs/kubernetes/kube-helmi-secret.yaml
 kubectl create -f docs/kubernetes/kube-helmi.yaml
 
 # curl to catalog with basic auth
