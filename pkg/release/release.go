@@ -326,8 +326,16 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 	return release.UserCredentials, nil
 }
 
+func min(x int, y int) int {
+	if x > y {
+		return y
+	}
+	return x
+}
+
 func getName(value string) string {
 	const prefix = "helmi"
+	const maxLengthNoPrefix = 14
 
 	if strings.HasPrefix(value, prefix) {
 		return value
@@ -337,7 +345,7 @@ func getName(value string) string {
 	name = strings.Replace(name, "-", "", -1)
 	name = strings.Replace(name, "_", "", -1)
 
-	return prefix + name[:14]
+	return prefix + name[:min(maxLengthNoPrefix, len(name))]
 }
 
 func getChart(service *catalog.Service, plan *catalog.Plan) (string, error) {

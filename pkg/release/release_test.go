@@ -34,6 +34,8 @@ func red(msg string) string {
 func Test_GetName(t *testing.T) {
 	const input string = "this_is-a_test_name_which-is_pretty-long"
 	const expected string = "helmithisisatestnam"
+	const inputShort string = "test1"
+	const expectedShort string = "helmitest1"
 
 	name := getName(input)
 
@@ -42,6 +44,15 @@ func Test_GetName(t *testing.T) {
 	}
 	if name != expected {
 		t.Error(red("name is wrong"))
+	}
+
+	nameShort := getName(inputShort)
+
+	if len(nameShort) != len(expectedShort) {
+		t.Error(red("length of nameShort is wrong"))
+	}
+	if nameShort != expectedShort {
+		t.Error(red("nameShort is wrong"))
 	}
 }
 
