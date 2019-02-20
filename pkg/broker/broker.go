@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"errors"
 	"github.com/monostream/helmi/pkg/kubectl"
 	"log"
 	"net/http"
@@ -171,10 +172,18 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		}
 	}
 
+	contextValues := make(map[string]interface{})
+	if details.RawContext != nil {
+		err := json.Unmarshal(details.RawContext, &contextValues)
+		if err != nil {
+			return spec, brokerapi.NewFailureResponse(errors.New("The format of the context is not valid JSON"), http.StatusUnprocessableEntity, "invalid-raw-context")
+		}
+	}
+
 	log.Printf("%s", string(details.RawContext))
 
 	namespace := namespaceFromContext(details.RawContext)
-	err := release.Install(b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters)
+	err := release.Install(b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters, contextValues)
 	if err != nil {
 		exists, existsErr := release.Exists(instanceID)
 
