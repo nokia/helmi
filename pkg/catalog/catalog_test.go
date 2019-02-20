@@ -116,8 +116,8 @@ var status = helm.Status{
 	IsFailed:   false,
 	IsDeployed: true,
 
-	DesiredNodes:    1,
-	AvailableNodes:  1,
+	DesiredNodes:   1,
+	AvailableNodes: 1,
 
 	Services: map[string]kubectl.Service{
 		"test_service": {
@@ -166,7 +166,6 @@ func deserializeCatalog(t *testing.T, serializedCatalog []byte) Catalog {
 
 	return *catalog
 }
-
 
 func Test_GetService(t *testing.T) {
 	c := getCatalog(t)
@@ -221,7 +220,6 @@ func Test_GetServicePlan_NoMetadata(t *testing.T) {
 	}
 }
 
-
 func Test_GetChartValues(t *testing.T) {
 	ns := kubectl.Namespace{
 		Name:          "testnamespace",
@@ -231,7 +229,7 @@ func Test_GetChartValues(t *testing.T) {
 	c := getCatalog(t)
 	s := c.Service("12345")
 	p := s.Plan("67890")
-	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil)
+	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
@@ -268,7 +266,7 @@ func Test_GetUserCredentials(t *testing.T) {
 	s := c.Service("12345")
 	p := s.Plan("67890")
 
-	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil)
+	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
