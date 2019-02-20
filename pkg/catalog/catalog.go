@@ -86,7 +86,7 @@ type Plan struct {
 	ChartValues  map[string]interface{} `yaml:"chart-values"`
 
 	UserCredentials map[string]interface{} `yaml:"user-credentials"`
-	Schemas         Schemas                `yaml:"schemas"`
+	Schemas         *Schemas               `yaml:"schemas"`
 }
 
 type Release struct {
@@ -306,9 +306,11 @@ func fixSchemaMaps(s *struct{ Service }) {
 	updatedPlans := make([]Plan, 0, len(s.Plans))
 
 	for _, p := range s.Plans {
-		p.Schemas.ServiceBinding.Create.Parameters = toStringMap(p.Schemas.ServiceBinding.Create.Parameters)
-		p.Schemas.ServiceInstance.Create.Parameters = toStringMap(p.Schemas.ServiceInstance.Create.Parameters)
-		p.Schemas.ServiceInstance.Update.Parameters = toStringMap(p.Schemas.ServiceInstance.Update.Parameters)
+		if p.Schemas != nil {
+			p.Schemas.ServiceBinding.Create.Parameters = toStringMap(p.Schemas.ServiceBinding.Create.Parameters)
+			p.Schemas.ServiceInstance.Create.Parameters = toStringMap(p.Schemas.ServiceInstance.Create.Parameters)
+			p.Schemas.ServiceInstance.Update.Parameters = toStringMap(p.Schemas.ServiceInstance.Update.Parameters)
+		}
 		updatedPlans = append(updatedPlans, p)
 	}
 

@@ -134,7 +134,11 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	return services, nil
 }
 
-func schemasFromCatalog(schemas catalog.Schemas) *brokerapi.ServiceSchemas {
+func schemasFromCatalog(schemas *catalog.Schemas) *brokerapi.ServiceSchemas {
+	if schemas == nil {
+		return nil
+	}
+
 	return &brokerapi.ServiceSchemas{
 		Instance: brokerapi.ServiceInstanceSchema{
 			Create: brokerapi.Schema{Parameters: schemas.ServiceInstance.Create.Parameters},
