@@ -93,20 +93,34 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 		isBindable := true
 
 		for _, plan := range service.Plans {
+    		metadata, error := planMetadataFromCatalog(plan.Metadata)
+
+			if error != nil {
+				return nil, error
+			}
+
 			p := brokerapi.ServicePlan{
 				ID:          plan.Id,
 				Name:        plan.Name,
 				Description: plan.Description,
+				Metadata:    metadata,
 				Free:        &isFree,
 				Bindable:    &isBindable,
 			}
 			servicePlans = append(servicePlans, p)
 		}
 
+		metadata, error := serviceMetadataFromCatalog(service.Metadata)
+
+		if error != nil {
+			return nil, error
+		}
+
 		s := brokerapi.Service{
 			ID:            service.Id,
 			Name:          service.Name,
 			Description:   service.Description,
+			Metadata:      metadata,
 			Bindable:      true,
 			PlanUpdatable: false,
 			Plans:         servicePlans,
@@ -115,6 +129,32 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	}
 
 	return services, nil
+}
+
+func planMetadataFromCatalog(metadata map[string]interface{}) (*brokerapi.ServicePlanMetadata, error) {
+	spm := brokerapi.ServicePlanMetadata{}
+	bytes, error := json.Marshal(metadata)
+
+	if error != nil {
+		return nil, error
+	}
+
+	spm.UnmarshalJSON(bytes)
+
+	return &spm, nil
+}
+
+func serviceMetadataFromCatalog(metadata map[string]interface{}) (*brokerapi.ServiceMetadata, error) {
+	sm := brokerapi.ServiceMetadata{}
+	bytes, error := json.Marshal(metadata)
+	if error != nil {
+
+		return nil, error
+	}
+
+	sm.UnmarshalJSON(bytes)
+
+	return &sm, nil
 }
 
 func namespaceFromContext(raw json.RawMessage) kubectl.Namespace {

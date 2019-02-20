@@ -24,11 +24,15 @@ service:
   description: "My Service as a Service"
   chart: stable/service
   chart-version: 1.0.0
+  metadata:
+    displayName: "My service"
   plans:
   -
     _id: 8cca984c-6e73-4f8d-b590-23e70867ee00
     _name: free
     description: "Free tier"
+    metadata:
+      displayName: "Free tier for my service"
   -
     _id: a4ef9493-ed99-45fd-aa03-7247cde88506
     _name: dev
