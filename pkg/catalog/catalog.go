@@ -42,9 +42,10 @@ type Catalog struct {
 }
 
 type Service struct {
-	Id          string `yaml:"_id"`
-	Name        string `yaml:"_name"`
-	Description string `yaml:"description"`
+	Id          string                 `yaml:"_id"`
+	Name        string                 `yaml:"_name"`
+	Description string                 `yaml:"description"`
+	Tags        []string               `yaml:"tags"`
 	Metadata    map[string]interface{} `yaml:"metadata"`
 
 	Chart        string `yaml:"chart"`
@@ -57,9 +58,9 @@ type Service struct {
 }
 
 type Plan struct {
-	Id          string `yaml:"_id"`
-	Name        string `yaml:"_name"`
-	Description string `yaml:"description"`
+	Id          string                 `yaml:"_id"`
+	Name        string                 `yaml:"_name"`
+	Description string                 `yaml:"description"`
 	Metadata    map[string]interface{} `yaml:"metadata"`
 
 	Chart        string                      `yaml:"chart"`
@@ -94,7 +95,7 @@ func New(dirOrZipOrZipUrl string) (*Catalog, error) {
 		return nil, err
 	}
 
-	c := &Catalog{ services: atomic.Value{}	}
+	c := &Catalog{services: atomic.Value{}}
 	c.services.Store(serviceMap)
 
 	catalogUpdateInterval := time.Minute * 15

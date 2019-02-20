@@ -12,6 +12,8 @@ service:
   description: "service_description"
   metadata:
     somekey: somevalue
+  tags:
+  - testtag
   chart: service_chart
   chart-version: 1.2.3
   plans:
@@ -122,6 +124,10 @@ func Test_Services_Metadata(t *testing.T) {
 
 	if services[0].Plans[0].Metadata.AdditionalMetadata["someplankey"] != "someplanvalue" {
 		t.Error(red("metadata does not contain 'someplankey' with value 'someplanvalue'"))
+	}
+
+	if services[0].Tags[0] != "testtag" {
+		t.Error(red("tags does not contain 'testtag'"))
 	}
 }
 

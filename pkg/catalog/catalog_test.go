@@ -13,6 +13,9 @@ service:
   _id: 12345
   _name: "test_service"
   description: "service_description"
+  tags:
+  - mysql
+  - database
   metadata:
     somekey: somevalue
   chart: service_chart
@@ -116,8 +119,8 @@ var status = helm.Status{
 	IsFailed:   false,
 	IsDeployed: true,
 
-	DesiredNodes:    1,
-	AvailableNodes:  1,
+	DesiredNodes:   1,
+	AvailableNodes: 1,
 
 	Services: map[string]kubectl.Service{
 		"test_service": {
@@ -167,7 +170,6 @@ func deserializeCatalog(t *testing.T, serializedCatalog []byte) Catalog {
 	return *catalog
 }
 
-
 func Test_GetService(t *testing.T) {
 	c := getCatalog(t)
 	cs := c.Service("12345")
@@ -177,6 +179,10 @@ func Test_GetService(t *testing.T) {
 
 	if cs.Metadata["somekey"] != "somevalue" {
 		t.Error(red("metadata does not contain 'somekey' with value 'somevalue'"))
+	}
+
+	if cs.Tags[0] != "mysql" {
+		t.Error(red("first tag isn't 'mysql'"))
 	}
 }
 
@@ -220,7 +226,6 @@ func Test_GetServicePlan_NoMetadata(t *testing.T) {
 		t.Error(red("metadata should not contain 'someplankey'"))
 	}
 }
-
 
 func Test_GetChartValues(t *testing.T) {
 	ns := kubectl.Namespace{
