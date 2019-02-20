@@ -94,7 +94,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 		isBindable := true
 
 		for _, plan := range service.Plans {
-    		metadata, error := planMetadataFromCatalog(plan.Metadata)
+			metadata, error := planMetadataFromCatalog(plan.Metadata)
 
 			if error != nil {
 				return nil, error
@@ -121,6 +121,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 			ID:            service.Id,
 			Name:          service.Name,
 			Description:   service.Description,
+			Tags:          service.Tags,
 			Metadata:      metadata,
 			Bindable:      true,
 			PlanUpdatable: false,

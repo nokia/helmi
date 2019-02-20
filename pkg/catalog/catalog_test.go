@@ -13,6 +13,9 @@ service:
   _id: 12345
   _name: "test_service"
   description: "service_description"
+  tags:
+  - mysql
+  - database
   metadata:
     somekey: somevalue
   chart: service_chart
@@ -176,6 +179,10 @@ func Test_GetService(t *testing.T) {
 
 	if cs.Metadata["somekey"] != "somevalue" {
 		t.Error(red("metadata does not contain 'somekey' with value 'somevalue'"))
+	}
+
+	if cs.Tags[0] != "mysql" {
+		t.Error(red("first tag isn't 'mysql'"))
 	}
 }
 
