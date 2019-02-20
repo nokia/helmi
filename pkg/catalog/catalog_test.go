@@ -5,6 +5,7 @@ import (
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
 	"reflect"
+	"sync/atomic"
 	"testing"
 )
 
@@ -70,9 +71,8 @@ var status = helm.Status{
 
 	DesiredNodes:    1,
 	AvailableNodes:  1,
-	PendingServices: 0,
 
-	Services: map[string]*helm.Service{
+	Services: map[string]kubectl.Service{
 		"test_service": {
 			Type:         "ClusterIP",
 			ClusterPorts: map[int]int{7070: 7070},
@@ -96,20 +96,20 @@ func red(msg string) string {
 }
 
 func Test_CatalogDir(t *testing.T) {
-	_, err := ParseDir("../../catalog")
+	_, err := parseDir("../../catalog")
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
 }
 
 func getCatalog(t *testing.T) Catalog {
-	c := Catalog{
-		Services: make(map[string]Service),
-	}
-	err := c.parseServiceDefinition(def, "<no file>")
+	c := Catalog{services: atomic.Value{}}
+	services := ServiceMap{}
+	err := addServiceYaml(services, def, "<no file>")
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
+	c.services.Store(services)
 
 	return c
 }
