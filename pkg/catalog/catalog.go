@@ -57,17 +57,36 @@ type Service struct {
 	credentialsTemplate *template.Template
 }
 
+type InputParameterSchema struct {
+	Parameters map[string]interface{} `yaml:"parameters"`
+}
+
+type ServiceInstanceSchema struct {
+	Create InputParameterSchema `yaml:"create"`
+	Update InputParameterSchema `yaml:"update"`
+}
+
+type ServiceBindingSchema struct {
+	Create InputParameterSchema `yaml:"create"`
+}
+
+type Schemas struct {
+	ServiceInstance ServiceInstanceSchema `yaml:"service-instance"`
+	ServiceBinding  ServiceBindingSchema  `yaml:"service-binding"`
+}
+
 type Plan struct {
 	Id          string                 `yaml:"_id"`
 	Name        string                 `yaml:"_name"`
 	Description string                 `yaml:"description"`
 	Metadata    map[string]interface{} `yaml:"metadata"`
 
-	Chart        string                      `yaml:"chart"`
-	ChartVersion string                      `yaml:"chart-version"`
-	ChartValues  map[interface{}]interface{} `yaml:"chart-values"`
+	Chart        string                 `yaml:"chart"`
+	ChartVersion string                 `yaml:"chart-version"`
+	ChartValues  map[string]interface{} `yaml:"chart-values"`
 
-	UserCredentials map[interface{}]interface{} `yaml:"user-credentials"`
+	UserCredentials map[string]interface{} `yaml:"user-credentials"`
+	Schemas         Schemas                `yaml:"schemas"`
 }
 
 type Release struct {
@@ -257,6 +276,10 @@ func addServiceYaml(services ServiceMap, input []byte, file string) error {
 
 	var s struct{ Service }
 	err := yaml.Unmarshal(documents[0], &s)
+
+	// Fix unmarshalling assuming map[interface{}]interface{}
+	fixSchemaMaps(&s)
+
 	if err != nil {
 		return fmt.Errorf("failed to parse service definition: %s: %s", file, err)
 	}
@@ -277,6 +300,19 @@ func addServiceYaml(services ServiceMap, input []byte, file string) error {
 
 	services[s.Id] = s.Service
 	return nil
+}
+
+func fixSchemaMaps(s *struct{ Service }) {
+	updatedPlans := make([]Plan, 0, len(s.Plans))
+
+	for _, p := range s.Plans {
+		p.Schemas.ServiceBinding.Create.Parameters = toStringMap(p.Schemas.ServiceBinding.Create.Parameters)
+		p.Schemas.ServiceInstance.Create.Parameters = toStringMap(p.Schemas.ServiceInstance.Create.Parameters)
+		p.Schemas.ServiceInstance.Update.Parameters = toStringMap(p.Schemas.ServiceInstance.Update.Parameters)
+		updatedPlans = append(updatedPlans, p)
+	}
+
+	s.Plans = updatedPlans
 }
 
 func (c *Catalog) Services() ServiceMap {
@@ -375,19 +411,35 @@ func templateFuncMap() template.FuncMap {
 
 // Note: yaml.v3 will make this unnecessary by exposing a default map type for unmarshalling:
 // https://github.com/go-yaml/yaml/issues/139
-func toStringMap(m map[interface{}]interface{}) map[string]interface{} {
+func toStringMap(m map[string]interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
 	for k, v := range m {
 		// convert key to string
 		k := fmt.Sprintf("%v", k)
-		if valMap, ok := v.(map[interface{}]interface{}); ok {
-			// convert values recursively
-			v = toStringMap(valMap)
-		}
-		result[k] = v
+		result[k] = valueToStringMap(v)
 	}
 
 	return result
+}
+
+func interfaceMapToStringMap(m map[interface{}]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range m {
+		// convert key to string
+		k := fmt.Sprintf("%v", k)
+		result[k] = valueToStringMap(v)
+	}
+
+	return result
+}
+
+func valueToStringMap(value interface{}) interface{} {
+	if valMap, ok := value.(map[interface{}]interface{}); ok {
+		// convert values recursively
+		return interfaceMapToStringMap(valMap)
+	}
+
+	return value
 }
 
 // Merges a list of unmarshalled yaml maps into a single string-index map.
@@ -430,7 +482,7 @@ func ExtractMetadata(helmValues map[string]interface{}) (Metadata, error) {
 	metadataMap, ok := helmValues[metadataKey].(map[string]interface{})
 	if !ok {
 		// yaml.v2 deserializes into map[interface{}]interface{}
-		rawMetadataMap, ok := helmValues[metadataKey].(map[interface{}]interface{})
+		rawMetadataMap, ok := helmValues[metadataKey].(map[string]interface{})
 		if !ok {
 			return Metadata{}, errors.New("failed to fetch helmi metadata from helm values")
 		}
@@ -471,7 +523,7 @@ func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Nam
 		Plan:       p,
 		Release:    struct{ Name string }{Name: releaseName},
 		Parameters: params,
-		Context: contextValues,
+		Context:    contextValues,
 		Cluster: &clusterVars{
 			Address:       extractAddress(nodes),
 			Hostname:      extractHostname(nodes),
@@ -484,7 +536,7 @@ func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Nam
 	}
 
 	var v struct {
-		ChartValues map[interface{}]interface{} `yaml:"chart-values"`
+		ChartValues map[string]interface{} `yaml:"chart-values"`
 	}
 
 	err = yaml.Unmarshal(b.Bytes(), &v)
@@ -690,8 +742,8 @@ func (s *Service) ReleaseSection(plan *Plan, kubernetesNodes []kubectl.Node, hel
 	}
 
 	var section struct {
-		UserCredentials map[interface{}]interface{} `yaml:"user-credentials"`
-		HealthCheckURLs []string                    `yaml:"health-checks"`
+		UserCredentials map[string]interface{} `yaml:"user-credentials"`
+		HealthCheckURLs []string               `yaml:"health-checks"`
 	}
 	err = yaml.Unmarshal(b.Bytes(), &section)
 	if err != nil {

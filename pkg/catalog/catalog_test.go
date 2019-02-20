@@ -27,6 +27,33 @@ service:
     description: "plan_description"
     metadata:
       someplankey: someplanvalue
+    schemas:
+      service-instance:
+        create:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+              billing-account:
+                description: Billing account number used to charge use of shared fake server.
+                type: string
+        update:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+            billing-account:
+              description: Billing account number used to charge use of shared fake server.
+              type: string
+      service-binding:
+        create:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+              billing-account:
+                description: Billing account number used to charge use of shared fake server.
+                type: string
     chart: "plan_chart"
     chart-version: "4.5.6"
     chart-values:
@@ -208,6 +235,18 @@ func Test_GetServicePlan(t *testing.T) {
 
 	if csp.Metadata["someplankey"] != "someplanvalue" {
 		t.Error(red("metadata does not contain 'someplankey' with value 'someplanvalue'"))
+	}
+
+	if csp.Schemas.ServiceBinding.Create.Parameters == nil {
+		t.Error(red("Service binding create parameters should contain something"))
+	}
+
+	if csp.Schemas.ServiceInstance.Create.Parameters == nil {
+		t.Error(red("Service instance create parameters should contain something"))
+	}
+
+	if csp.Schemas.ServiceInstance.Update.Parameters == nil {
+		t.Error(red("Service instance update parameters should contain something"))
 	}
 }
 
