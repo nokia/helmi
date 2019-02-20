@@ -397,6 +397,7 @@ type chartValueVars struct {
 	Service    *Service
 	Plan       *Plan
 	Parameters map[string]interface{}
+	Context    map[string]interface{}
 	Release    struct {
 		Name string
 	}
@@ -443,7 +444,7 @@ func ExtractMetadata(helmValues map[string]interface{}) (Metadata, error) {
 	return metadata, nil
 }
 
-func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}) (map[string]interface{}, error) {
+func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (map[string]interface{}, error) {
 	b := new(bytes.Buffer)
 
 	// since Cluster.Address and Cluster.Hostname are never used in the ChartValues, errors here aren't handled
@@ -454,6 +455,7 @@ func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Nam
 		Plan:       p,
 		Release:    struct{ Name string }{Name: releaseName},
 		Parameters: params,
+		Context: contextValues,
 		Cluster: &clusterVars{
 			Address:       extractAddress(nodes),
 			Hostname:      extractHostname(nodes),

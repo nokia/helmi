@@ -49,7 +49,7 @@ func getLogger() *zap.Logger {
 	return logger
 }
 
-func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, namespace kubectl.Namespace, acceptsIncomplete bool, parameters map[string]interface{}) error {
+func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, namespace kubectl.Namespace, acceptsIncomplete bool, parameters map[string]interface{}, contextValues map[string]interface{}) error {
 	name := getName(id)
 	logger := getLogger()
 
@@ -58,7 +58,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 
 	chart, chartErr := getChart(service, plan)
 	chartVersion, chartVersionErr := getChartVersion(service, plan)
-	chartValues, valuesErr := service.ChartValues(plan, name, namespace, parameters)
+	chartValues, valuesErr := service.ChartValues(plan, name, namespace, parameters, contextValues)
 
 	if chartErr != nil {
 		logger.Error("failed to read chart from catalog definition",
