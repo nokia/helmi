@@ -5,11 +5,58 @@ import (
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
 	"reflect"
-	"sync/atomic"
 	"testing"
 )
 
 var def = []byte(`---
+service:
+  _id: 12345
+  _name: "test_service"
+  description: "service_description"
+  metadata:
+    somekey: somevalue
+  chart: service_chart
+  chart-version: 1.2.3
+  plans:
+  -
+    _id: 67890
+    _name: test_plan
+    description: "plan_description"
+    metadata:
+      someplankey: someplanvalue
+    chart: "plan_chart"
+    chart-version: "4.5.6"
+    chart-values:
+      baz: qux
+      nested:
+        from_plan: "from plan"
+---
+chart-values:
+    foo: "bar"
+    username: "{{ generateUsername }}"
+    password: "{{ generatePassword }}"
+    hostname: "{{ .Cluster.IngressDomain }}"
+    nested:
+      from_vals: "from vals"
+---
+user-credentials:
+    key: "{{ .Values.foo }}"
+    plan_key: "{{ .Values.baz }}"
+    cluster_addr: "{{ .Cluster.Address }}"
+    cluster_hostname: "{{ .Cluster.Hostname }}"
+    port: {{ .Services.Port "test_service" 7070 }}
+    node_port: {{ .Services.Port "node_service" 8080 }}
+    lb_port: {{ .Services.Port "lb_service" 9090 }}
+    any_port: {{ .Services.FindPort 8080 }}
+    addr: "{{ .Services.Address "test_service" 7070 }}"
+    lb_addr: "{{ .Services.Address "lb_service" 9090 }}"
+    node_addr: "{{ .Services.Address "node_service" 8080 }}"
+    namespace: "{{ .Release.Namespace }}"
+    nested:
+{{ toYaml .Values.nested | indent 8 }}
+`)
+
+var defNoMetadata = []byte(`---
 service:
   _id: 12345
   _name: "test_service"
@@ -103,22 +150,42 @@ func Test_CatalogDir(t *testing.T) {
 }
 
 func getCatalog(t *testing.T) Catalog {
-	c := Catalog{services: atomic.Value{}}
-	services := ServiceMap{}
-	err := addServiceYaml(services, def, "<no file>")
+	return deserializeCatalog(t, def)
+}
+
+func getCatalogWithoutMetadata(t *testing.T) Catalog {
+	return deserializeCatalog(t, defNoMetadata)
+}
+
+func deserializeCatalog(t *testing.T, serializedCatalog []byte) Catalog {
+	catalog, err := NewFromSerialized(serializedCatalog)
+
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
-	c.services.Store(services)
 
-	return c
+	return *catalog
 }
+
 
 func Test_GetService(t *testing.T) {
 	c := getCatalog(t)
 	cs := c.Service("12345")
 	if cs.Name != "test_service" {
 		t.Error(red("service name is wrong"))
+	}
+
+	if cs.Metadata["somekey"] != "somevalue" {
+		t.Error(red("metadata does not contain 'somekey' with value 'somevalue'"))
+	}
+}
+
+func Test_GetService_NoMetadata(t *testing.T) {
+	c := getCatalogWithoutMetadata(t)
+	cs := c.Service("12345")
+
+	if cs.Metadata["somekey"] != nil {
+		t.Error(red("metadata should not contain 'somekey'"))
 	}
 }
 
@@ -132,7 +199,28 @@ func Test_GetServicePlan(t *testing.T) {
 	if csp.ChartValues["baz"] != "qux" {
 		t.Error(red("chart value in plan is wrong"))
 	}
+
+	if csp.Metadata["someplankey"] != "someplanvalue" {
+		t.Error(red("metadata does not contain 'someplankey' with value 'someplanvalue'"))
+	}
 }
+
+func Test_GetServicePlan_NoMetadata(t *testing.T) {
+	c := getCatalogWithoutMetadata(t)
+	csp := c.Service("12345").Plan("67890")
+
+	if csp.Name != "test_plan" {
+		t.Error(red("service plan is wrong"))
+	}
+	if csp.ChartValues["baz"] != "qux" {
+		t.Error(red("chart value in plan is wrong"))
+	}
+
+	if csp.Metadata["someplankey"] != nil {
+		t.Error(red("metadata should not contain 'someplankey'"))
+	}
+}
+
 
 func Test_GetChartValues(t *testing.T) {
 	ns := kubectl.Namespace{

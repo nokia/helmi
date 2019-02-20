@@ -45,6 +45,7 @@ type Service struct {
 	Id          string `yaml:"_id"`
 	Name        string `yaml:"_name"`
 	Description string `yaml:"description"`
+	Metadata    map[string]interface{} `yaml:"metadata"`
 
 	Chart        string `yaml:"chart"`
 	ChartVersion string `yaml:"chart-version"`
@@ -59,6 +60,7 @@ type Plan struct {
 	Id          string `yaml:"_id"`
 	Name        string `yaml:"_name"`
 	Description string `yaml:"description"`
+	Metadata    map[string]interface{} `yaml:"metadata"`
 
 	Chart        string                      `yaml:"chart"`
 	ChartVersion string                      `yaml:"chart-version"`
@@ -70,6 +72,19 @@ type Plan struct {
 type Release struct {
 	UserCredentials map[string]interface{}
 	HealthCheckURLs []string
+}
+
+// Parses serialized byte array
+func NewFromSerialized(serializedCatalog []byte) (*Catalog, error) {
+	c := Catalog{services: atomic.Value{}}
+	services := ServiceMap{}
+	err := addServiceYaml(services, serializedCatalog, "<no file>")
+	if err != nil {
+		return nil, err
+	}
+	c.services.Store(services)
+
+	return &c, nil
 }
 
 // Parses any catalog format: local directories, local zip archives or zip archive urls
