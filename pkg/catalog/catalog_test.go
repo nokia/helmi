@@ -4,9 +4,24 @@ import (
 	"fmt"
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
+	"gopkg.in/yaml.v2"
 	"reflect"
 	"testing"
 )
+
+var valueFromHelm = []byte(`
+__metadata:
+  helmiPlanId: f1b10f98-0846-44c4-b474-ff151891ab0f
+  helmiServiceId: 486e8c4b-fdc2-458e-809e-0d9802e197c0
+  helmiSvcDomain: ""
+extraEnv: {}
+image:
+  debug: false
+  pullPolicy: Always
+  registry: docker.io
+  repository: bitnami/postgresql
+  tag: 10.7.0
+`)
 
 var def = []byte(`---
 service:
@@ -320,6 +335,7 @@ func Test_GetUserCredentials(t *testing.T) {
 	release, err := s.ReleaseSection(p, nodes, status, values)
 	if err != nil {
 		t.Error(red(err.Error()))
+		return
 	}
 
 	expected := map[string]interface{}{
@@ -388,5 +404,24 @@ func Test_mergeMaps(t *testing.T) {
 
 	if !reflect.DeepEqual(expected, got) {
 		t.Error(red(fmt.Sprintf("expected %v, got  %v", expected, got)))
+	}
+}
+
+func Test_ExtractMetadata(t *testing.T) {
+	var values map[string]interface{}
+	err := yaml.Unmarshal(valueFromHelm, &values)
+
+	if err != nil {
+		t.Error("Unmarshal failed: ", err)
+	}
+
+	metadata, err := ExtractMetadata(values)
+
+	if err != nil {
+		t.Error("ExtractMetadata failed: ", err)
+	}
+
+	if metadata.PlanId != "f1b10f98-0846-44c4-b474-ff151891ab0f" {
+		t.Error("PlanID doesn't match: ", metadata.PlanId)
 	}
 }

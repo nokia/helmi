@@ -480,16 +480,12 @@ type Metadata struct {
 	IngressDomain string
 }
 
-func ExtractMetadata(helmValues map[string]interface{}) (Metadata, error) {
+func ExtractMetadata(rawHelmValues map[string]interface{}) (Metadata, error) {
+	helmValues := toStringMap(rawHelmValues)
+
 	metadataMap, ok := helmValues[metadataKey].(map[string]interface{})
 	if !ok {
-		// yaml.v2 deserializes into map[interface{}]interface{}
-		rawMetadataMap, ok := helmValues[metadataKey].(map[string]interface{})
-		if !ok {
-			return Metadata{}, errors.New("failed to fetch helmi metadata from helm values")
-		}
-
-		metadataMap = toStringMap(rawMetadataMap)
+		return Metadata{}, errors.New("failed to fetch helmi metadata from helm values")
 	}
 
 	serviceId, hasServiceId := metadataMap[metadataServiceIdKey].(string)
