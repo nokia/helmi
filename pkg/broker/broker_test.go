@@ -23,6 +23,33 @@ service:
     description: "plan_description"
     metadata:
       someplankey: someplanvalue
+    schemas:
+      service-instance:
+        create:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+              billing-account:
+                description: Billing account number used to charge use of shared fake server.
+                type: string
+        update:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+            billing-account:
+              description: Billing account number used to charge use of shared fake server.
+              type: string
+      service-binding:
+        create:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+              billing-account:
+                description: Billing account number used to charge use of shared fake server.
+                type: string    
     chart: "plan_chart"
     chart-version: "4.5.6"
     chart-values:
@@ -128,6 +155,10 @@ func Test_Services_Metadata(t *testing.T) {
 
 	if services[0].Tags[0] != "testtag" {
 		t.Error(red("tags does not contain 'testtag'"))
+	}
+
+	if len(services[0].Plans[0].Schemas.Binding.Create.Parameters) <= 0 {
+		t.Error(red("Service binding create schema should not be empty"))
 	}
 }
 

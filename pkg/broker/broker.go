@@ -104,6 +104,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 				ID:          plan.Id,
 				Name:        plan.Name,
 				Description: plan.Description,
+				Schemas:     schemasFromCatalog(plan.Schemas),
 				Metadata:    metadata,
 				Free:        &isFree,
 				Bindable:    &isBindable,
@@ -131,6 +132,20 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	}
 
 	return services, nil
+}
+
+func schemasFromCatalog(schemas *catalog.Schemas) *brokerapi.ServiceSchemas {
+	if schemas == nil {
+		return nil
+	}
+
+	return &brokerapi.ServiceSchemas{
+		Instance: brokerapi.ServiceInstanceSchema{
+			Create: brokerapi.Schema{Parameters: schemas.ServiceInstance.Create.Parameters},
+			Update: brokerapi.Schema{Parameters: schemas.ServiceInstance.Update.Parameters},
+		},
+		Binding: brokerapi.ServiceBindingSchema{Create: brokerapi.Schema{Parameters: schemas.ServiceBinding.Create.Parameters}},
+	}
 }
 
 func planMetadataFromCatalog(metadata map[string]interface{}) (*brokerapi.ServicePlanMetadata, error) {

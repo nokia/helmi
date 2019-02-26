@@ -4,9 +4,24 @@ import (
 	"fmt"
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
+	"gopkg.in/yaml.v2"
 	"reflect"
 	"testing"
 )
+
+var valueFromHelm = []byte(`
+__metadata:
+  helmiPlanId: f1b10f98-0846-44c4-b474-ff151891ab0f
+  helmiServiceId: 486e8c4b-fdc2-458e-809e-0d9802e197c0
+  helmiSvcDomain: ""
+extraEnv: {}
+image:
+  debug: false
+  pullPolicy: Always
+  registry: docker.io
+  repository: bitnami/postgresql
+  tag: 10.7.0
+`)
 
 var def = []byte(`---
 service:
@@ -27,6 +42,33 @@ service:
     description: "plan_description"
     metadata:
       someplankey: someplanvalue
+    schemas:
+      service-instance:
+        create:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+              billing-account:
+                description: Billing account number used to charge use of shared fake server.
+                type: string
+        update:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+            billing-account:
+              description: Billing account number used to charge use of shared fake server.
+              type: string
+      service-binding:
+        create:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+              billing-account:
+                description: Billing account number used to charge use of shared fake server.
+                type: string
     chart: "plan_chart"
     chart-version: "4.5.6"
     chart-values:
@@ -209,6 +251,18 @@ func Test_GetServicePlan(t *testing.T) {
 	if csp.Metadata["someplankey"] != "someplanvalue" {
 		t.Error(red("metadata does not contain 'someplankey' with value 'someplanvalue'"))
 	}
+
+	if csp.Schemas.ServiceBinding.Create.Parameters == nil {
+		t.Error(red("Service binding create parameters should contain something"))
+	}
+
+	if csp.Schemas.ServiceInstance.Create.Parameters == nil {
+		t.Error(red("Service instance create parameters should contain something"))
+	}
+
+	if csp.Schemas.ServiceInstance.Update.Parameters == nil {
+		t.Error(red("Service instance update parameters should contain something"))
+	}
 }
 
 func Test_GetServicePlan_NoMetadata(t *testing.T) {
@@ -281,6 +335,7 @@ func Test_GetUserCredentials(t *testing.T) {
 	release, err := s.ReleaseSection(p, nodes, status, values)
 	if err != nil {
 		t.Error(red(err.Error()))
+		return
 	}
 
 	expected := map[string]interface{}{
@@ -349,5 +404,24 @@ func Test_mergeMaps(t *testing.T) {
 
 	if !reflect.DeepEqual(expected, got) {
 		t.Error(red(fmt.Sprintf("expected %v, got  %v", expected, got)))
+	}
+}
+
+func Test_ExtractMetadata(t *testing.T) {
+	var values map[string]interface{}
+	err := yaml.Unmarshal(valueFromHelm, &values)
+
+	if err != nil {
+		t.Error("Unmarshal failed: ", err)
+	}
+
+	metadata, err := ExtractMetadata(values)
+
+	if err != nil {
+		t.Error("ExtractMetadata failed: ", err)
+	}
+
+	if metadata.PlanId != "f1b10f98-0846-44c4-b474-ff151891ab0f" {
+		t.Error("PlanID doesn't match: ", metadata.PlanId)
 	}
 }
