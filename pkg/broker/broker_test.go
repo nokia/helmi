@@ -2,6 +2,7 @@ package broker
 
 import (
 	"github.com/monostream/helmi/pkg/catalog"
+	"github.com/monostream/helmi/pkg/config"
 	"testing"
 )
 
@@ -137,7 +138,7 @@ func Test_Services_Metadata(t *testing.T) {
 		t.Error(red(err.Error()))
 	}
 
-	broker := NewBroker(catalog, Config{}, nil)
+	broker := NewBroker(catalog, &config.Config{}, nil)
 
 	services, err := broker.Services(nil)
 
@@ -169,7 +170,7 @@ func Test_Services_NoMetadata(t *testing.T) {
 		t.Error(red(err.Error()))
 	}
 
-	broker := NewBroker(catalog, Config{}, nil)
+	broker := NewBroker(catalog, &config.Config{}, nil)
 
 	services, err := broker.Services(nil)
 
