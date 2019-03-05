@@ -2,11 +2,10 @@ package broker
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"github.com/monostream/helmi/pkg/kubectl"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
@@ -14,32 +13,31 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi"
 
-	"encoding/json"
 	"github.com/monostream/helmi/pkg/catalog"
+	"github.com/monostream/helmi/pkg/config"
 	"github.com/monostream/helmi/pkg/helm"
+	"github.com/monostream/helmi/pkg/kubectl"
 	"github.com/monostream/helmi/pkg/release"
 )
 
-type Config struct {
-	Username string
-	Password string
-	Address  string
-}
-
 type Broker struct {
-	catalog *catalog.Catalog
-	logger  lager.Logger
-	router  *mux.Router
-	addr    string
+	catalog       *catalog.Catalog
+	logger        lager.Logger
+	router        *mux.Router
+	addr          string
+	helmNamespace string
+	ingressDomain string
 }
 
-func NewBroker(catalog *catalog.Catalog, config Config, logger lager.Logger) *Broker {
+func NewBroker(catalog *catalog.Catalog, config *config.Config, logger lager.Logger) *Broker {
 	router := mux.NewRouter()
 	b := &Broker{
 		catalog: catalog,
 		logger:  logger,
 		router:  router,
-		addr:    config.Address,
+		addr:    ":" + config.Port,
+		helmNamespace: config.HelmNamespace,
+		ingressDomain: config.IngressDomain,
 	}
 
 	brokerapi.AttachRoutes(b.router, b, logger)
@@ -94,10 +92,10 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 		isBindable := true
 
 		for _, plan := range service.Plans {
-			metadata, error := planMetadataFromCatalog(plan.Metadata)
+			metadata, err := planMetadataFromCatalog(plan.Metadata)
 
-			if error != nil {
-				return nil, error
+			if err != nil {
+				return nil, err
 			}
 
 			p := brokerapi.ServicePlan{
@@ -112,10 +110,10 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 			servicePlans = append(servicePlans, p)
 		}
 
-		metadata, error := serviceMetadataFromCatalog(service.Metadata)
+		metadata, err := serviceMetadataFromCatalog(service.Metadata)
 
-		if error != nil {
-			return nil, error
+		if err != nil {
+			return nil, err
 		}
 
 		s := brokerapi.Service{
@@ -205,15 +203,6 @@ func namespaceFromContext(raw json.RawMessage) kubectl.Namespace {
 		}
 	}
 
-	// fill any missing values form env
-	if len(namespace.Name) == 0 {
-		namespace.Name = os.Getenv("HELM_NAMESPACE")
-	}
-
-	if len(namespace.IngressDomain) == 0 {
-		namespace.IngressDomain = os.Getenv("INGRESS_DOMAIN")
-	}
-
 	return namespace
 }
 
@@ -239,6 +228,15 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	log.Printf("%s", string(details.RawContext))
 
 	namespace := namespaceFromContext(details.RawContext)
+	// fill any missing values from configuration
+	if len(namespace.Name) == 0 {
+		namespace.Name = b.helmNamespace
+	}
+
+	if len(namespace.IngressDomain) == 0 {
+		namespace.IngressDomain = b.ingressDomain
+	}
+
 	err := release.Install(b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters, contextValues)
 	if err != nil {
 		exists, existsErr := release.Exists(instanceID)
@@ -318,7 +316,7 @@ func (b *Broker) Update(ctx context.Context, instanceID string, details brokerap
 
 type skipAuth map[*mux.Route]bool
 
-func authHandler(config Config, noAuthRequired skipAuth) mux.MiddlewareFunc {
+func authHandler(config *config.Config, noAuthRequired skipAuth) mux.MiddlewareFunc {
 	validCredentials := func(r *http.Request) bool {
 		// disable authentication if configuration variables not set
 		if config.Username == "" || config.Password == "" {
