@@ -275,7 +275,7 @@ func addServiceYaml(services ServiceMap, input []byte, file string) error {
 	}
 
 	var s struct{ Service }
-	err := yaml.Unmarshal(documents[0], &s)
+	err := yaml.UnmarshalStrict(documents[0], &s)
 
 	// Fix unmarshalling assuming map[interface{}]interface{}
 	fixSchemaMaps(&s)
@@ -352,7 +352,7 @@ func templateFuncMap() template.FuncMap {
 	f["fromYaml"] = func(str string) map[string]interface{} {
 		m := map[string]interface{}{}
 
-		if err := yaml.Unmarshal([]byte(str), &m); err != nil {
+		if err := yaml.UnmarshalStrict([]byte(str), &m); err != nil {
 			m["Error"] = err.Error()
 		}
 		return m
@@ -537,7 +537,7 @@ func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Nam
 		ChartValues map[string]interface{} `yaml:"chart-values"`
 	}
 
-	err = yaml.Unmarshal(b.Bytes(), &v)
+	err = yaml.UnmarshalStrict(b.Bytes(), &v)
 	if err != nil {
 		return nil, err
 	}
@@ -743,9 +743,12 @@ func (s *Service) ReleaseSection(plan *Plan, kubernetesNodes []kubectl.Node, hel
 		UserCredentials map[string]interface{} `yaml:"user-credentials"`
 		HealthCheckURLs []string               `yaml:"health-checks"`
 	}
-	err = yaml.Unmarshal(b.Bytes(), &section)
+	err = yaml.UnmarshalStrict(b.Bytes(), &section)
+
 	if err != nil {
-		return nil, err
+		errWithMessage := fmt.Errorf("Could not deserialize %s into a map.\nIs the user-credentials section defined correctly as YAML map and health-checks as YAML list and that you have no extra fields there?\nError: %s", b, err)
+
+		return nil, errWithMessage
 	}
 
 	serviceCreds := toStringMap(section.UserCredentials)
