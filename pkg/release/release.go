@@ -54,7 +54,19 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 	logger := getLogger()
 
 	service := catalog.Service(serviceId)
-	plan := service.Plan(planId)
+	plan, err := service.Plan(planId)
+
+	if err != nil {
+		logger.Error("failed find plan with plan id",
+			zap.String("id", id),
+			zap.String("name", name),
+			zap.String("serviceId", serviceId),
+			zap.String("planId", planId),
+			zap.Error(err))
+
+		return err
+	}
+
 
 	chart, chartErr := getChart(service, plan)
 	chartVersion, chartVersionErr := getChartVersion(service, plan)
@@ -86,7 +98,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 		return valuesErr
 	}
 
-	err := helm.Install(name, chart, chartVersion, chartValues, namespace.Name, acceptsIncomplete)
+	err = helm.Install(name, chart, chartVersion, chartValues, namespace.Name, acceptsIncomplete)
 
 	if err != nil {
 		logger.Error("failed to install release",
@@ -216,7 +228,18 @@ func GetHealth(c *catalog.Catalog, id string) (Health, error) {
 	}
 
 	service := c.Service(metadata.ServiceId)
-	plan := service.Plan(metadata.PlanId)
+	plan, err := service.Plan(metadata.PlanId)
+
+	if err != nil {
+		logger.Error("failed find plan with plan id",
+			zap.String("id", id),
+			zap.String("name", name),
+			zap.String("serviceId", metadata.ServiceId),
+			zap.String("planId", metadata.PlanId),
+			zap.Error(err))
+
+		return Health{}, err
+	}
 
 	nodes, err := kubectl.GetNodes()
 	if err != nil {
@@ -262,7 +285,18 @@ func GetCredentials(catalog *catalog.Catalog, serviceId string, planId string, i
 	logger := getLogger()
 
 	service := catalog.Service(serviceId)
-	plan := service.Plan(planId)
+	plan, err := service.Plan(planId)
+
+	if err != nil {
+		logger.Error("failed find plan with plan Id",
+			zap.String("id", id),
+			zap.String("name", name),
+			zap.String("serviceId", serviceId),
+			zap.String("planId", planId),
+			zap.Error(err))
+
+		return nil, err
+	}
 
 	status, err := helm.GetStatus(name)
 	if err != nil {

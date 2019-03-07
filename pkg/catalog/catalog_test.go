@@ -6,6 +6,7 @@ import (
 	"github.com/monostream/helmi/pkg/kubectl"
 	"gopkg.in/yaml.v2"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -145,6 +146,60 @@ user-credentials:
 {{ toYaml .Values.nested | indent 8 }}
 `)
 
+var defInvalidCredType = []byte(`---
+service:
+  _id: 12345
+  _name: "test_service"
+  description: "service_description"
+  chart: service_chart
+  chart-version: 1.2.3
+  plans:
+  -
+    _id: 67890
+    _name: test_plan
+    description: "plan_description"
+    chart: "plan_chart"
+    chart-version: "4.5.6"
+    chart-values:
+      baz: qux
+      nested:
+        from_plan: "from plan"
+---
+chart-values:
+    foo: "bar"
+    username: "{{ generateUsername }}"
+---
+user-credentials: []
+`)
+
+var defInvalidCredField = []byte(`---
+service:
+  _id: 12345
+  _name: "test_service"
+  description: "service_description"
+  chart: service_chart
+  chart-version: 1.2.3
+  plans:
+  -
+    _id: 67890
+    _name: test_plan
+    description: "plan_description"
+    chart: "plan_chart"
+    chart-version: "4.5.6"
+    chart-values:
+      baz: qux
+      nested:
+        from_plan: "from plan"
+---
+chart-values:
+    foo: "bar"
+    username: "{{ generateUsername }}"
+---
+some-wrong-name: 
+    key: "{{ .Values.foo }}"
+    plan_key: "{{ .Values.baz }}"
+`)
+
 var nodes = []kubectl.Node{
 	{
 		Name: "test_node",
@@ -202,6 +257,14 @@ func getCatalogWithoutMetadata(t *testing.T) Catalog {
 	return deserializeCatalog(t, defNoMetadata)
 }
 
+func getCatalogInvalidCredentialsType(t *testing.T) Catalog {
+	return deserializeCatalog(t, defInvalidCredType)
+}
+
+func getCatalogInvalidCredentialsField(t *testing.T) Catalog {
+	return deserializeCatalog(t, defInvalidCredField)
+}
+
 func deserializeCatalog(t *testing.T, serializedCatalog []byte) Catalog {
 	catalog, err := NewFromSerialized(serializedCatalog)
 
@@ -239,7 +302,11 @@ func Test_GetService_NoMetadata(t *testing.T) {
 
 func Test_GetServicePlan(t *testing.T) {
 	c := getCatalog(t)
-	csp := c.Service("12345").Plan("67890")
+	csp, err := c.Service("12345").Plan("67890")
+
+	if err != nil {
+		t.Error(red("service plan was not found"))
+	}
 
 	if csp.Name != "test_plan" {
 		t.Error(red("service plan is wrong"))
@@ -267,7 +334,11 @@ func Test_GetServicePlan(t *testing.T) {
 
 func Test_GetServicePlan_NoMetadata(t *testing.T) {
 	c := getCatalogWithoutMetadata(t)
-	csp := c.Service("12345").Plan("67890")
+	csp, err := c.Service("12345").Plan("67890")
+
+	if err != nil {
+		t.Error(red("service plan was not found"))
+	}
 
 	if csp.Name != "test_plan" {
 		t.Error(red("service plan is wrong"))
@@ -289,7 +360,12 @@ func Test_GetChartValues(t *testing.T) {
 
 	c := getCatalog(t)
 	s := c.Service("12345")
-	p := s.Plan("67890")
+	p, err := s.Plan("67890")
+
+	if err != nil {
+		t.Error(red("service plan was not found"))
+	}
+
 	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
@@ -325,7 +401,11 @@ func Test_GetUserCredentials(t *testing.T) {
 
 	c := getCatalog(t)
 	s := c.Service("12345")
-	p := s.Plan("67890")
+	p, err := s.Plan("67890")
+
+	if err != nil {
+		t.Error(red("service plan was not found"))
+	}
 
 	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
@@ -360,6 +440,58 @@ func Test_GetUserCredentials(t *testing.T) {
 	credentials := release.UserCredentials
 	if !reflect.DeepEqual(expected, credentials) {
 		t.Error(red(fmt.Sprintf("expected %#v, got  %#v", expected, credentials)))
+	}
+}
+
+func Test_GetUserCredentialsWrongCredType(t *testing.T) {
+	ns := kubectl.Namespace{
+		Name:          "testnamespace",
+		IngressDomain: "test.ingress.domain",
+	}
+
+	c := getCatalogInvalidCredentialsType(t)
+	s := c.Service("12345")
+	p := s.Plan("67890")
+
+	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
+	if err != nil {
+		t.Error(red(err.Error()))
+	}
+
+	_, err = s.ReleaseSection(p, nodes, status, values)
+	if err == nil {
+		t.Error("Deserialization of invalid YAML should have failed.")
+		return
+	}
+
+	if !strings.HasPrefix(err.Error(), "Could not deserialize") {
+		t.Error(red(fmt.Sprintf("err %#v does not start with 'Could not deserialize'", err)))
+	}
+}
+
+func Test_GetUserCredentialsWrongCredField(t *testing.T) {
+	ns := kubectl.Namespace{
+		Name:          "testnamespace",
+		IngressDomain: "test.ingress.domain",
+	}
+
+	c := getCatalogInvalidCredentialsField(t)
+	s := c.Service("12345")
+	p := s.Plan("67890")
+
+	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
+	if err != nil {
+		t.Error(red(err.Error()))
+	}
+
+	_, err = s.ReleaseSection(p, nodes, status, values)
+	if err == nil {
+		t.Error("Deserialization of invalid YAML should have failed.")
+		return
+	}
+
+	if !strings.HasPrefix(err.Error(), "Could not deserialize") {
+		t.Error(red(fmt.Sprintf("err %#v does not start with 'Could not deserialize'", err)))
 	}
 }
 
