@@ -329,13 +329,13 @@ func (c *Catalog) Service(id string) *Service {
 	return nil
 }
 
-func (s *Service) Plan(id string) *Plan {
+func (s *Service) Plan(id string) (*Plan, error) {
 	for _, p := range s.Plans {
 		if strings.EqualFold(p.Id, id) {
-			return &p
+			return &p, nil
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("Plan with id %s could not be found", id)
 }
 
 func templateFuncMap() template.FuncMap {
