@@ -49,7 +49,7 @@ func getLogger() *zap.Logger {
 	return logger
 }
 
-func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, namespace kubectl.Namespace, acceptsIncomplete bool, parameters map[string]interface{}, contextValues map[string]interface{}) error {
+func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, namespace kubectl.Namespace, acceptsIncomplete bool, parameters map[string]interface{}, contextValues map[string]interface{}) (*string, error) {
 	name := getName(id)
 	logger := getLogger()
 
@@ -64,9 +64,8 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("planId", planId),
 			zap.Error(err))
 
-		return err
+		return nil, err
 	}
-
 
 	chart, chartErr := getChart(service, plan)
 	chartVersion, chartVersionErr := getChartVersion(service, plan)
@@ -80,7 +79,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("planId", planId),
 			zap.Error(chartErr))
 
-		return chartErr
+		return nil, chartErr
 	}
 
 	if chartVersionErr != nil {
@@ -95,7 +94,20 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("planId", planId),
 			zap.Error(valuesErr))
 
-		return valuesErr
+		return nil, valuesErr
+	}
+
+	dashboardUrl, urlErr := service.DashboardURL(plan, name, namespace, parameters, contextValues)
+
+	if urlErr != nil {
+		logger.Error("failed to parse dashboard URL in chart-values section",
+			zap.String("id", id),
+			zap.String("name", name),
+			zap.String("serviceId", serviceId),
+			zap.String("planId", planId),
+			zap.Error(urlErr))
+
+		return nil, urlErr
 	}
 
 	err = helm.Install(name, chart, chartVersion, chartValues, namespace.Name, acceptsIncomplete)
@@ -111,7 +123,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("namespace", namespace.Name),
 			zap.Error(err))
 
-		return err
+		return nil, err
 	}
 
 	logger.Info("new release installed",
@@ -123,7 +135,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 		zap.String("planId", planId),
 		zap.String("namespace", namespace.Name))
 
-	return nil
+	return dashboardUrl, nil
 }
 
 func Exists(id string) (bool, error) {
