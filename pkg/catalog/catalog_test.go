@@ -239,7 +239,11 @@ func Test_GetService_NoMetadata(t *testing.T) {
 
 func Test_GetServicePlan(t *testing.T) {
 	c := getCatalog(t)
-	csp := c.Service("12345").Plan("67890")
+	csp, err := c.Service("12345").Plan("67890")
+
+	if err != nil {
+		t.Error(red("service plan was not found"))
+	}
 
 	if csp.Name != "test_plan" {
 		t.Error(red("service plan is wrong"))
@@ -267,7 +271,11 @@ func Test_GetServicePlan(t *testing.T) {
 
 func Test_GetServicePlan_NoMetadata(t *testing.T) {
 	c := getCatalogWithoutMetadata(t)
-	csp := c.Service("12345").Plan("67890")
+	csp, err := c.Service("12345").Plan("67890")
+
+	if err != nil {
+		t.Error(red("service plan was not found"))
+	}
 
 	if csp.Name != "test_plan" {
 		t.Error(red("service plan is wrong"))
@@ -289,7 +297,12 @@ func Test_GetChartValues(t *testing.T) {
 
 	c := getCatalog(t)
 	s := c.Service("12345")
-	p := s.Plan("67890")
+	p, err := s.Plan("67890")
+
+	if err != nil {
+		t.Error(red("service plan was not found"))
+	}
+
 	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
@@ -325,7 +338,11 @@ func Test_GetUserCredentials(t *testing.T) {
 
 	c := getCatalog(t)
 	s := c.Service("12345")
-	p := s.Plan("67890")
+	p, err := s.Plan("67890")
+
+	if err != nil {
+		t.Error(red("service plan was not found"))
+	}
 
 	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
