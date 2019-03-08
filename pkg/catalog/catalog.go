@@ -537,10 +537,11 @@ func (s *Service) DashboardURL(p *Plan, releaseName string, namespace kubectl.Na
 	}
 
 	var v struct {
-		DashboardURL *string `yaml:"dashboard-url"`
+		ChartValues  map[string]interface{} `yaml:"chart-values"`
+		DashboardURL *string                `yaml:"dashboard-url"`
 	}
 
-	err = yaml.Unmarshal(b.Bytes(), &v)
+	err = yaml.UnmarshalStrict(b.Bytes(), &v)
 	if err != nil {
 		return nil, err
 	}
@@ -556,7 +557,8 @@ func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Nam
 	}
 
 	var v struct {
-		ChartValues map[string]interface{} `yaml:"chart-values"`
+		ChartValues  map[string]interface{} `yaml:"chart-values"`
+		DashboardURL *string                `yaml:"dashboard-url"`
 	}
 
 	err = yaml.UnmarshalStrict(b.Bytes(), &v)
