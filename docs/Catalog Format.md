@@ -24,6 +24,9 @@ service:
   description: "My Service as a Service"
   chart: stable/service
   chart-version: 1.0.0
+  tags:
+  - database
+  - mysql
   metadata:
     displayName: "My service"
   plans:
@@ -37,17 +40,49 @@ service:
     _id: a4ef9493-ed99-45fd-aa03-7247cde88506
     _name: dev
     description: "Development tier"
+    metadata:
+      billing: true
+    schemas:
+      service-instance:
+        create:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+              billing-account:
+                description: Billing account number used to charge use of shared fake server.
+                type: string
+        update:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+            billing-account:
+              description: Billing account number used to charge use of shared fake server.
+              type: string
+      service-binding:
+        create:
+          parameters:
+            $schema: http://json-schema.org/draft-04/schema#
+            type: object
+            properties:
+              billing-account:
+                description: Billing account number used to charge use of shared fake server.
+                type: string
     chart-values:
       dev: true
       replicaCount: 1
       replicaMinAvailable: 0
+      
 ---
 # Helm values used when a service is created.
-#   Available template variables: .Service, .Plan, .Release.Name, .Cluster, .Parameters
+#   Available template variables: .Service, .Plan, .Release.Name, .Cluster, .Parameters, .Context
 chart-values:
   username: "{{ generateUsername }}"
   http_proxy: "{{ env "HTTP_PROXY" }}"
   desc: "{{ .Plan.Description }}"
+  systemId: "{{ .Context.systemId }}
+  
 ---
 # Credentials reported when a new binding is created:
 #   Available template variables: .Service, .Plan, .Values, .Release, .Cluster
