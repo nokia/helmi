@@ -482,7 +482,10 @@ func Test_GetUserCredentialsWrongCredType(t *testing.T) {
 
 	c := getCatalogInvalidCredentialsType(t)
 	s := c.Service("12345")
-	p := s.Plan("67890")
+	p, err := s.Plan("67890")
+	if err != nil {
+		t.Error(red(err.Error()))
+	}
 
 	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
@@ -508,7 +511,10 @@ func Test_GetUserCredentialsWrongCredField(t *testing.T) {
 
 	c := getCatalogInvalidCredentialsField(t)
 	s := c.Service("12345")
-	p := s.Plan("67890")
+	p, err := s.Plan("67890")
+	if err != nil {
+		t.Error(red(err.Error()))
+	}
 
 	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
