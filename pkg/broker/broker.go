@@ -239,7 +239,7 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	log.Printf("%s", string(details.RawContext))
 
 	namespace := namespaceFromContext(details.RawContext)
-	err := release.Install(b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters, contextValues)
+	dashboardUrl, err := release.Install(b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters, contextValues)
 	if err != nil {
 		exists, existsErr := release.Exists(instanceID)
 
@@ -249,6 +249,10 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	}
 
 	spec.IsAsync = asyncAllowed
+
+	if dashboardUrl != nil {
+		spec.DashboardURL = *dashboardUrl
+	}
 	return spec, err
 }
 
