@@ -10,6 +10,8 @@ spec:
         app: helmi
     spec:
       serviceAccountName: helmi
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: helmi
         image: monostream/helmi:latest
@@ -48,6 +50,8 @@ metadata:
 spec:
   selector:
     app: helmi
+    type: NodePort
   ports:
     - protocol: TCP
       port: 5000
+      nodePort: 30000
