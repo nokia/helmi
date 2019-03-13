@@ -50,7 +50,7 @@ metadata:
 spec:
   selector:
     app: helmi
-    type: NodePort
+  type: NodePort
   ports:
     - protocol: TCP
       port: 5000
