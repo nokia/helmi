@@ -1,4 +1,4 @@
-FROM golang:1.11-alpine as builder
+FROM golang:1.12-alpine as builder
 
 # Install dependencies
 RUN apk add --update --no-cache ca-certificates tar wget
@@ -20,7 +20,7 @@ RUN wget -nv -O- https://storage.googleapis.com/kubernetes-helm/helm-v2.13.0-lin
 # Download dumb-init 1.2.1
 RUN wget -nv -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.1/dumb-init_1.2.1_amd64 && chmod 755 /usr/local/bin/dumb-init
 
-FROM alpine:3.8
+FROM alpine:3.9
 RUN apk add --update --no-cache ca-certificates
 
 WORKDIR /app/
