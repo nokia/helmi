@@ -21,9 +21,9 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/aokoli/goutils"
+	"github.com/gofrs/uuid"
 	"github.com/monostream/helmi/pkg/helm"
 	"github.com/monostream/helmi/pkg/kubectl"
-	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
 )
@@ -382,7 +382,8 @@ func templateFuncMap() template.FuncMap {
 	}
 
 	f["generateUsername"] = func() string {
-		s := uuid.NewV4().String()
+		uuid, _ := uuid.NewV4()
+		s := uuid.String()
 		s = strings.Replace(s, "-", "", -1)
 		return "u" + s[:30]
 	}

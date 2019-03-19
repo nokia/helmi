@@ -9,6 +9,7 @@ require (
 	github.com/aokoli/goutils v1.0.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/drewolson/testflight v1.0.0 // indirect
+	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415 // indirect
 	github.com/google/btree v0.0.0-20160524151835-7d79101e329e // indirect
 	github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367 // indirect
@@ -28,7 +29,6 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pivotal-cf/brokerapi v2.0.0+incompatible
 	github.com/pkg/errors v0.8.1 // indirect
-	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/pflag v1.0.1 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
 	go.uber.org/atomic v1.3.1 // indirect

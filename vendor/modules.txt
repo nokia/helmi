@@ -6,6 +6,8 @@ github.com/Masterminds/semver
 github.com/Masterminds/sprig
 # github.com/aokoli/goutils v1.0.1
 github.com/aokoli/goutils
+# github.com/gofrs/uuid v3.2.0+incompatible
+github.com/gofrs/uuid
 # github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
@@ -49,8 +51,6 @@ github.com/peterbourgon/diskv
 # github.com/pivotal-cf/brokerapi v2.0.0+incompatible
 github.com/pivotal-cf/brokerapi
 github.com/pivotal-cf/brokerapi/auth
-# github.com/satori/go.uuid v1.2.0
-github.com/satori/go.uuid
 # github.com/spf13/pflag v1.0.1
 github.com/spf13/pflag
 # go.uber.org/atomic v1.3.1
