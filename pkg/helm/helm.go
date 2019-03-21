@@ -61,9 +61,19 @@ func ListCharts() (map[string]Chart, error) {
 		} else {
 			if columnName >= 0 && columnDescription >= 0 && columnAppVersion >= 0 && columnChartVersion >= 0 {
 				name := strings.Fields(line[columnName:])[0]
-				description := strings.Fields(line[columnDescription:])[0]
-				appVersion := strings.Fields(line[columnAppVersion:])[0]
 				chartVersion := strings.Fields(line[columnChartVersion:])[0]
+
+				// the next fields can be empty
+				descriptionSlice := strings.Fields(line[columnDescription:])
+				description := ""
+				if len(descriptionSlice) > 0 {
+					description = descriptionSlice[0]
+				}
+				appVersionSlice := strings.Fields(line[columnAppVersion:])
+				appVersion := ""
+				if len(appVersionSlice) > 0 {
+					appVersion = appVersionSlice[0]
+				}
 
 				chart := Chart{
 					Name:        name,

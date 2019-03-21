@@ -6,27 +6,38 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/monostream/helmi/pkg/broker"
 	"github.com/monostream/helmi/pkg/catalog"
+	"github.com/monostream/helmi/pkg/config"
 	"github.com/monostream/helmi/pkg/helm"
 )
 
 func main() {
+	configuration := &config.Config{}
+	configuration.LoadConfig()
+
 	logger := lager.NewLogger("helmi")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 	logger.RegisterSink(lager.NewWriterSink(os.Stderr, lager.ERROR))
 
 	// expects a JSON map in the form of "name":"http://url" pairs
-	err := parseHelmReposFromJSON(getEnv("REPOSITORY_URLS", "{}"))
-
+	err := parseHelmReposFromJSON(configuration.RepositoryURLs)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	catalogSource := getEnv("CATALOG_URL", "./catalog")
-	c, err := catalog.New(catalogSource)
+	catalogSource := configuration.CatalogURL
+	catalogUpdateInterval := time.Minute * 15
+	if len(configuration.CatalogUpdateInterval) > 0 {
+		catalogUpdateInterval, err = time.ParseDuration(configuration.CatalogUpdateInterval)
+		if err != nil {
+			log.Fatal("invalid env var CATALOG_UPDATE_INTERVAL: " + err.Error())
+		}
+	}
+	c, err := catalog.New(catalogSource, catalogUpdateInterval)
 
 	if err != nil {
 		log.Fatal("Failed to parse catalog. Did you set CATALOG_URL correctly? Error:", err)
@@ -38,30 +49,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	addr := ":" + getEnv("PORT", "5000")
-	user := os.Getenv("USERNAME")
-	pass := os.Getenv("PASSWORD")
-
-	if user == "" || pass == "" {
+	if configuration.Username == "" || configuration.Password == "" {
 		log.Println("Username and/or password not specified, authentication will be disabled!")
 	}
 
-	config := broker.Config{
-		Username: user,
-		Password: pass,
-		Address:  addr,
-	}
-
-	b := broker.NewBroker(c, config, logger)
+	b := broker.NewBroker(c, configuration, logger)
 	b.Run()
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-
-	return fallback
 }
 
 func parseHelmReposFromJSON(helmReposJSON string) error {

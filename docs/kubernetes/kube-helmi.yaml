@@ -17,6 +17,16 @@ spec:
         image: monostream/helmi:latest
         imagePullPolicy: Always
         env:
+        #- name: INGRESS_DOMAIN
+        #  value: svc.example.com
+        #- name: TILLER_NAMESPACE
+        #  value: tiller
+        #- name: HELM_NAMESPACE
+        #  value: default
+        #- name: CATALOG_URL
+        #  value: https://example.com/catalog.zip
+        #- name: REPOSITORY_URLS
+        #  value: '{"stable":"https://kubernetes-charts.storage.googleapis.com"}'
         - name: USERNAME
           valueFrom:
             secretKeyRef:

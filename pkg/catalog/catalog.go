@@ -108,7 +108,7 @@ func NewFromSerialized(serializedCatalog []byte) (*Catalog, error) {
 }
 
 // Parses any catalog format: local directories, local zip archives or zip archive urls
-func New(dirOrZipOrZipUrl string) (*Catalog, error) {
+func New(dirOrZipOrZipUrl string, updateInterval time.Duration) (*Catalog, error) {
 	serviceMap, err := parseAny(dirOrZipOrZipUrl)
 	if err != nil {
 		return nil, err
@@ -117,19 +117,10 @@ func New(dirOrZipOrZipUrl string) (*Catalog, error) {
 	c := &Catalog{services: atomic.Value{}}
 	c.services.Store(serviceMap)
 
-	catalogUpdateInterval := time.Minute * 15
-	if interval, ok := os.LookupEnv("CATALOG_UPDATE_INTERVAL"); ok {
-		dur, err := time.ParseDuration(interval)
-		if err != nil {
-			return nil, fmt.Errorf("invalid env var CATALOG_UPDATE_INTERVAL: %s", err)
-		}
-		catalogUpdateInterval = dur
-	}
-
 	// start go-routine to periodically update the catalog in the background
 	go func() {
 		for {
-			time.Sleep(catalogUpdateInterval)
+			time.Sleep(updateInterval)
 
 			err := helm.RepoUpdate()
 			if err != nil {
