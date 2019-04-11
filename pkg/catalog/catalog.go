@@ -461,7 +461,8 @@ type chartValueVars struct {
 	Parameters map[string]interface{}
 	Context    map[string]interface{}
 	Release    struct {
-		Name string
+		Name     string
+		Hostname string
 	}
 	Cluster *clusterVars
 }
@@ -508,10 +509,22 @@ func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Nam
 	// since Cluster.Address and Cluster.Hostname are never used in the ChartValues, errors here aren't handled
 	nodes, _ := kubectl.GetNodes()
 
+	// define custom name if parameter was passed
+	hostname := releaseName
+	if preferredName, ok := params["preferred_name"]; ok {
+		hostname = preferredName.(string)
+	}
+
 	data := chartValueVars{
 		Service:    s,
 		Plan:       p,
-		Release:    struct{ Name string }{Name: releaseName},
+		Release:    struct {
+			Name string
+			Hostname string
+		}{
+			releaseName,
+			hostname,
+		},
 		Parameters: params,
 		Context:    contextValues,
 		Cluster: &clusterVars{
