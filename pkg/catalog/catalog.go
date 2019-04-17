@@ -529,21 +529,21 @@ func (s *Service) getChartValueSection(p *Plan, releaseName string, namespace ku
 	return b, nil
 }
 
-func (s *Service) DashboardURL(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (*string, error) {
+func (s *Service) DashboardURL(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (string, error) {
 	b, err := s.getChartValueSection(p, releaseName, namespace, params, contextValues)
 
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	var v struct {
 		ChartValues  map[string]interface{} `yaml:"chart-values"`
-		DashboardURL *string                `yaml:"dashboard-url"`
+		DashboardURL string                 `yaml:"dashboard-url"`
 	}
 
 	err = yaml.UnmarshalStrict(b.Bytes(), &v)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	return v.DashboardURL, nil

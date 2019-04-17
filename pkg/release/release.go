@@ -49,7 +49,7 @@ func getLogger() *zap.Logger {
 	return logger
 }
 
-func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, namespace kubectl.Namespace, acceptsIncomplete bool, parameters map[string]interface{}, contextValues map[string]interface{}) (*string, error) {
+func Install(catalog *catalog.Catalog, serviceId string, planId string, id string, namespace kubectl.Namespace, acceptsIncomplete bool, parameters map[string]interface{}, contextValues map[string]interface{}) (string, error) {
 	name := getName(id)
 	logger := getLogger()
 
@@ -64,7 +64,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("planId", planId),
 			zap.Error(err))
 
-		return nil, err
+		return "", err
 	}
 
 	chart, chartErr := getChart(service, plan)
@@ -79,7 +79,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("planId", planId),
 			zap.Error(chartErr))
 
-		return nil, chartErr
+		return "", chartErr
 	}
 
 	if chartVersionErr != nil {
@@ -94,7 +94,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("planId", planId),
 			zap.Error(valuesErr))
 
-		return nil, valuesErr
+		return "", valuesErr
 	}
 
 	dashboardUrl, urlErr := service.DashboardURL(plan, name, namespace, parameters, contextValues)
@@ -107,7 +107,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("planId", planId),
 			zap.Error(urlErr))
 
-		return nil, urlErr
+		return "", urlErr
 	}
 
 	err = helm.Install(name, chart, chartVersion, chartValues, namespace.Name, acceptsIncomplete)
@@ -123,7 +123,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 			zap.String("namespace", namespace.Name),
 			zap.Error(err))
 
-		return nil, err
+		return "", err
 	}
 
 	logger.Info("new release installed",

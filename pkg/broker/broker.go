@@ -249,10 +249,8 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	}
 
 	spec.IsAsync = asyncAllowed
+	spec.DashboardURL = dashboardUrl
 
-	if dashboardUrl != nil {
-		spec.DashboardURL = *dashboardUrl
-	}
 	return spec, err
 }
 

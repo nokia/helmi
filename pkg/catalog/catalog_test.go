@@ -374,12 +374,12 @@ func Test_GetDashboardUrl(t *testing.T) {
 
 	expected := "test.ingress.domain/dashboard"
 
-	if url == nil {
-		t.Error(red(fmt.Sprintf("expected %v, got  nil", expected)))
+	if url == "" {
+		t.Error(red(fmt.Sprintf("expected %v, got empty string", expected)))
 	}
 
-	if *url != expected {
-		t.Error(red(fmt.Sprintf("expected %v, got  %v", expected, url)))
+	if url != expected {
+		t.Error(red(fmt.Sprintf("expected %v, got %v", expected, url)))
 	}
 }
 
