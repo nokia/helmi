@@ -84,6 +84,7 @@ chart-values:
     hostname: "{{ .Cluster.IngressDomain }}"
     nested:
       from_vals: "from vals"
+dashboard-url: "{{ .Cluster.IngressDomain }}/dashboard"
 ---
 user-credentials:
     key: "{{ .Values.foo }}"
@@ -349,6 +350,36 @@ func Test_GetServicePlan_NoMetadata(t *testing.T) {
 
 	if csp.Metadata["someplankey"] != nil {
 		t.Error(red("metadata should not contain 'someplankey'"))
+	}
+}
+
+func Test_GetDashboardUrl(t *testing.T) {
+	ns := kubectl.Namespace{
+		Name:          "testnamespace",
+		IngressDomain: "test.ingress.domain",
+	}
+
+	c := getCatalog(t)
+	s := c.Service("12345")
+	p, err := s.Plan("67890")
+
+	if err != nil {
+		t.Error(red("service plan was not found"))
+	}
+
+	url, err := s.DashboardURL(p, "RELEASE-NAME", ns, nil, nil)
+	if err != nil {
+		t.Error(red(err.Error()))
+	}
+
+	expected := "test.ingress.domain/dashboard"
+
+	if url == "" {
+		t.Error(red(fmt.Sprintf("expected %v, got empty string", expected)))
+	}
+
+	if url != expected {
+		t.Error(red(fmt.Sprintf("expected %v, got %v", expected, url)))
 	}
 }
 

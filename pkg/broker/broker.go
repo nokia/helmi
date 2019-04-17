@@ -228,6 +228,7 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	log.Printf("%s", string(details.RawContext))
 
 	namespace := namespaceFromContext(details.RawContext)
+
 	// fill any missing values from configuration
 	if len(namespace.Name) == 0 {
 		namespace.Name = b.helmNamespace
@@ -237,7 +238,8 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		namespace.IngressDomain = b.ingressDomain
 	}
 
-	err := release.Install(b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters, contextValues)
+	dashboardUrl, err := release.Install(b.catalog, details.ServiceID, details.PlanID, instanceID, namespace, asyncAllowed, parameters, contextValues)
+
 	if err != nil {
 		exists, existsErr := release.Exists(instanceID)
 
@@ -247,6 +249,8 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	}
 
 	spec.IsAsync = asyncAllowed
+	spec.DashboardURL = dashboardUrl
+
 	return spec, err
 }
 

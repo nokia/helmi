@@ -92,6 +92,7 @@ type Plan struct {
 type Release struct {
 	UserCredentials map[string]interface{}
 	HealthCheckURLs []string
+	DashboardURL    *string
 }
 
 // Parses serialized byte array
@@ -503,7 +504,7 @@ func ExtractMetadata(rawHelmValues map[string]interface{}) (Metadata, error) {
 	return metadata, nil
 }
 
-func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (map[string]interface{}, error) {
+func (s *Service) getChartValueSection(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (*bytes.Buffer, error) {
 	b := new(bytes.Buffer)
 
 	// since Cluster.Address and Cluster.Hostname are never used in the ChartValues, errors here aren't handled
@@ -538,8 +539,39 @@ func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Nam
 		return nil, err
 	}
 
+	return b, nil
+}
+
+func (s *Service) DashboardURL(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (string, error) {
+	b, err := s.getChartValueSection(p, releaseName, namespace, params, contextValues)
+
+	if err != nil {
+		return "", err
+	}
+
 	var v struct {
-		ChartValues map[string]interface{} `yaml:"chart-values"`
+		ChartValues  map[string]interface{} `yaml:"chart-values"`
+		DashboardURL string                 `yaml:"dashboard-url"`
+	}
+
+	err = yaml.UnmarshalStrict(b.Bytes(), &v)
+	if err != nil {
+		return "", err
+	}
+
+	return v.DashboardURL, nil
+}
+
+func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (map[string]interface{}, error) {
+	b, err := s.getChartValueSection(p, releaseName, namespace, params, contextValues)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var v struct {
+		ChartValues  map[string]interface{} `yaml:"chart-values"`
+		DashboardURL *string                `yaml:"dashboard-url"`
 	}
 
 	err = yaml.UnmarshalStrict(b.Bytes(), &v)
