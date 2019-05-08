@@ -1,0 +1,13 @@
+{{- if .Values.kubeConfig -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "helmi.name" . }}
+  labels:
+    app.kubernetes.io/name: {{ template "helmi.name" . }}
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  admin.conf: {{ .Values.kubeConfig | toYaml | indent 2 | trim }}
+{{- end -}}
