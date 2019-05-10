@@ -69,7 +69,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 
 	chart, chartErr := getChart(service, plan)
 	chartVersion, chartVersionErr := getChartVersion(service, plan)
-	chartValues, valuesErr := service.ChartValues(plan, name, namespace, parameters, contextValues)
+	chartValues, valuesErr := service.ChartValues(plan, id, name, namespace, parameters, contextValues)
 
 	if chartErr != nil {
 		logger.Error("failed to read chart from catalog definition",
@@ -97,7 +97,7 @@ func Install(catalog *catalog.Catalog, serviceId string, planId string, id strin
 		return "", valuesErr
 	}
 
-	dashboardUrl, urlErr := service.DashboardURL(plan, name, namespace, parameters, contextValues)
+	dashboardUrl, urlErr := service.DashboardURL(plan, id, name, namespace, parameters, contextValues)
 
 	if urlErr != nil {
 		logger.Error("failed to parse dashboard URL in chart-values section",
