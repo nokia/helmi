@@ -456,16 +456,23 @@ func mergeMaps(maps ...map[string]interface{}) map[string]interface{} {
 	return result
 }
 
+type releaseInfo struct {
+	Name     string
+	Hostname string
+}
+
+type instanceInfo struct {
+	Id string
+}
+
 type chartValueVars struct {
 	Service    *Service
 	Plan       *Plan
 	Parameters map[string]interface{}
 	Context    map[string]interface{}
-	Release    struct {
-		Name     string
-		Hostname string
-	}
-	Cluster *clusterVars
+	Instance   *instanceInfo
+	Release    *releaseInfo
+	Cluster    *clusterVars
 }
 
 type Metadata struct {
@@ -504,7 +511,7 @@ func ExtractMetadata(rawHelmValues map[string]interface{}) (Metadata, error) {
 	return metadata, nil
 }
 
-func (s *Service) getChartValueSection(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (*bytes.Buffer, error) {
+func (s *Service) getChartValueSection(p *Plan, instanceId string, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (*bytes.Buffer, error) {
 	b := new(bytes.Buffer)
 
 	// since Cluster.Address and Cluster.Hostname are never used in the ChartValues, errors here aren't handled
@@ -517,12 +524,10 @@ func (s *Service) getChartValueSection(p *Plan, releaseName string, namespace ku
 	}
 
 	data := chartValueVars{
-		Service:    s,
-		Plan:       p,
-		Release:    struct {
-			Name string
-			Hostname string
-		}{
+		Service:  s,
+		Plan:     p,
+		Instance: &instanceInfo{instanceId},
+		Release: &releaseInfo{
 			releaseName,
 			hostname,
 		},
@@ -542,8 +547,8 @@ func (s *Service) getChartValueSection(p *Plan, releaseName string, namespace ku
 	return b, nil
 }
 
-func (s *Service) DashboardURL(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (string, error) {
-	b, err := s.getChartValueSection(p, releaseName, namespace, params, contextValues)
+func (s *Service) DashboardURL(p *Plan, instanceId string, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (string, error) {
+	b, err := s.getChartValueSection(p, instanceId, releaseName, namespace, params, contextValues)
 
 	if err != nil {
 		return "", err
@@ -562,8 +567,8 @@ func (s *Service) DashboardURL(p *Plan, releaseName string, namespace kubectl.Na
 	return v.DashboardURL, nil
 }
 
-func (s *Service) ChartValues(p *Plan, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (map[string]interface{}, error) {
-	b, err := s.getChartValueSection(p, releaseName, namespace, params, contextValues)
+func (s *Service) ChartValues(p *Plan, instanceId string, releaseName string, namespace kubectl.Namespace, params map[string]interface{}, contextValues map[string]interface{}) (map[string]interface{}, error) {
+	b, err := s.getChartValueSection(p, instanceId, releaseName, namespace, params, contextValues)
 
 	if err != nil {
 		return nil, err

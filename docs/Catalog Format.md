@@ -76,12 +76,13 @@ service:
       
 ---
 # Helm values used when a service is created.
-#   Available template variables: .Service, .Plan, .Release.Name, .Cluster, .Parameters, .Context
+#   Available template variables: .Service, .Plan, .Release.Name, .Instance.Id, .Cluster, .Parameters, .Context
 chart-values:
   username: "{{ generateUsername }}"
   http_proxy: "{{ env "HTTP_PROXY" }}"
   desc: "{{ .Plan.Description }}"
-  systemId: "{{ .Context.systemId }}
+  systemId: "{{ .Context.systemId }}"
+  instanceId: "{{ .Instance.Id }}"
   
 ---
 # Credentials reported when a new binding is created:
