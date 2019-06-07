@@ -1,3 +1,4 @@
+# builder
 FROM golang:1.12-alpine as builder
 
 ENV HELM_VERSION="v2.13.1"
@@ -9,7 +10,7 @@ RUN apk add --update --no-cache ca-certificates tar wget
 WORKDIR /go/src/github.com/monostream/helmi/
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o helmi .
+RUN go build -ldflags "-s -w" -o helmi .
 
 # Copy helm artefacts
 WORKDIR /app/
@@ -19,20 +20,18 @@ RUN rm -r /go/src/
 # Download helm
 RUN wget -nv -O- https://storage.googleapis.com/kubernetes-helm/helm-${HELM_VERSION}-linux-amd64.tar.gz | tar --strip-components=1 -zxf -
 
-# Download dumb-init 1.2.1
-RUN wget -nv -O /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.1/dumb-init_1.2.1_amd64 && chmod 755 /usr/local/bin/dumb-init
 
+# runner
 FROM alpine:3.9
-RUN apk add --update --no-cache ca-certificates
+
+RUN apk add --update --no-cache ca-certificates dumb-init
 
 WORKDIR /app/
 
 COPY --from=builder /app/ .
-COPY --from=builder /usr/local/bin/dumb-init /usr/local/bin/dumb-init
 
 # Setup environment
 ENV PATH "/app:${PATH}"
-ENV REPOSITORY_URLS '{"monostream":"http://helm-charts.monocloud.io"}'
 
 RUN addgroup -S helmi && \
     adduser -S -G helmi helmi && \
@@ -40,9 +39,18 @@ RUN addgroup -S helmi && \
 
 USER helmi
 
-# Initialize helm
-RUN helm init --client-only
+# Init Helm
 
-ENTRYPOINT ["/usr/local/bin/dumb-init", "--"]
+RUN mkdir -p /home/helmi/.helm/repository && \
+    mkdir -p /home/helmi/.helm/repository/cache && \
+    mkdir -p /home/helmi/.helm/repository/local && \
+    mkdir -p /home/helmi/.helm/cache && \
+    mkdir -p /home/helmi/.helm/cache/archive && \
+    mkdir -p /home/helmi/.helm/plugins && \
+    mkdir -p /home/helmi/.helm/starters
+
+COPY repositories.yaml /home/helmi/.helm/repository/repositories.yaml
+
+ENTRYPOINT ["dumb-init", "--"]
 
 CMD ["helmi"]

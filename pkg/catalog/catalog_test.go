@@ -82,6 +82,7 @@ chart-values:
     username: "{{ generateUsername }}"
     password: "{{ generatePassword }}"
     hostname: "{{ .Cluster.IngressDomain }}"
+    instanceId: "{{ .Instance.Id }}"
     nested:
       from_vals: "from vals"
 dashboard-url: "{{ .Cluster.IngressDomain }}/dashboard"
@@ -367,7 +368,7 @@ func Test_GetDashboardUrl(t *testing.T) {
 		t.Error(red("service plan was not found"))
 	}
 
-	url, err := s.DashboardURL(p, "RELEASE-NAME", ns, nil, nil)
+	url, err := s.DashboardURL(p, "instance-id", "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
@@ -397,17 +398,18 @@ func Test_GetChartValues(t *testing.T) {
 		t.Error(red("service plan was not found"))
 	}
 
-	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
+	values, err := s.ChartValues(p, "instance-id", "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
 
 	expected := map[string]interface{}{
-		"foo":      "bar",
-		"baz":      "qux",
-		"username": values["username"], // cheat
-		"password": values["password"], // cheat
-		"hostname": "test.ingress.domain",
+		"foo":        "bar",
+		"baz":        "qux",
+		"username":   values["username"], // cheat
+		"password":   values["password"], // cheat
+		"hostname":   "test.ingress.domain",
+		"instanceId": "instance-id",
 		"nested": map[string]interface{}{
 			"from_plan": "from plan",
 			"from_vals": "from vals",
@@ -438,7 +440,7 @@ func Test_GetUserCredentials(t *testing.T) {
 		t.Error(red("service plan was not found"))
 	}
 
-	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
+	values, err := s.ChartValues(p, "instance-id", "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
@@ -487,7 +489,7 @@ func Test_GetUserCredentialsWrongCredType(t *testing.T) {
 		t.Error(red(err.Error()))
 	}
 
-	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
+	values, err := s.ChartValues(p, "instance-id", "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
@@ -516,7 +518,7 @@ func Test_GetUserCredentialsWrongCredField(t *testing.T) {
 		t.Error(red(err.Error()))
 	}
 
-	values, err := s.ChartValues(p, "RELEASE-NAME", ns, nil, nil)
+	values, err := s.ChartValues(p, "instance-id", "RELEASE-NAME", ns, nil, nil)
 	if err != nil {
 		t.Error(red(err.Error()))
 	}
