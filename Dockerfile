@@ -37,10 +37,6 @@ RUN addgroup -S helmi && \
     adduser -S -G helmi helmi && \
     chown -R helmi:helmi /app
 
-USER helmi
-
-# Init Helm
-
 RUN mkdir -p /home/helmi/.helm/repository && \
     mkdir -p /home/helmi/.helm/repository/cache && \
     mkdir -p /home/helmi/.helm/repository/local && \
@@ -50,6 +46,10 @@ RUN mkdir -p /home/helmi/.helm/repository && \
     mkdir -p /home/helmi/.helm/starters
 
 COPY repositories.yaml /home/helmi/.helm/repository/repositories.yaml
+
+RUN chown -R helmi:helmi /home/helmi/.helm
+
+USER helmi
 
 ENTRYPOINT ["dumb-init", "--"]
 
