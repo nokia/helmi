@@ -37,19 +37,15 @@ RUN addgroup -S helmi && \
     adduser -S -G helmi helmi && \
     chown -R helmi:helmi /app
 
-RUN mkdir -p /home/helmi/.helm/repository && \
-    mkdir -p /home/helmi/.helm/repository/cache && \
-    mkdir -p /home/helmi/.helm/repository/local && \
-    mkdir -p /home/helmi/.helm/cache && \
-    mkdir -p /home/helmi/.helm/cache/archive && \
-    mkdir -p /home/helmi/.helm/plugins && \
-    mkdir -p /home/helmi/.helm/starters
-
-COPY repositories.yaml /home/helmi/.helm/repository/repositories.yaml
-
-RUN chown -R helmi:helmi /home/helmi/.helm
-
 USER helmi
+
+RUN mkdir -p ~/.helm/repository/cache && \
+    mkdir -p ~/.helm/repository/local && \
+    mkdir -p ~/.helm/cache/archive && \
+    mkdir -p ~/.helm/plugins && \
+    mkdir -p ~/.helm/starters
+
+COPY --chown=helmi:helmi repositories.yaml /home/helmi/.helm/repository/repositories.yaml
 
 ENTRYPOINT ["dumb-init", "--"]
 
