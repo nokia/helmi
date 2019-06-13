@@ -106,7 +106,8 @@ type Status struct {
 
 func (s *Status) IsAvailable() bool {
 	pendingServices := 0
-	for _ , svc := range s.Services {
+
+	for _, svc := range s.Services {
 		if svc.Type == "LoadBalancer" && len(svc.ExternalIP) == 0 {
 			pendingServices++
 		}
@@ -160,6 +161,7 @@ func Install(release string, chart string, version string, values map[string]int
 	}
 
 	cmd := exec.Command("helm", arguments...)
+
 	if len(values) > 0 {
 		// pass values as yaml on stdin
 		buf, err := yaml.Marshal(values)
@@ -192,12 +194,15 @@ func Delete(release string) error {
 func GetValues(release string) (map[string]interface{}, error) {
 	cmd := exec.Command("helm", "get", "values", release, "--all")
 	output, err := cmd.Output()
+
 	if err != nil {
 		return nil, err
 	}
 
 	var values map[string]interface{}
+
 	err = yaml.Unmarshal(output, &values)
+
 	if err != nil {
 		return nil, err
 	}
@@ -352,18 +357,23 @@ func GetStatus(release string) (Status, error) {
 
 func IsReady() error {
 	cmd := exec.Command("helm", "list", "--short")
+
 	stderr := new(bytes.Buffer)
 	cmd.Stderr = stderr
+
 	err := cmd.Run()
+
 	if _, exited := err.(*exec.ExitError); exited {
 		msg := strings.TrimSpace(stderr.String())
 		err = errors.New(msg)
 	}
+
 	return err
 }
 
 func RepoAdd(name string, repoURI string) error {
 	uri, err := url.Parse(repoURI)
+
 	if err != nil {
 		return err
 	}
@@ -378,6 +388,7 @@ func RepoAdd(name string, repoURI string) error {
 	}
 
 	args := []string{"repo", "add", name, uri.String()}
+
 	if len(username) > 0 {
 		args = append(args, "--username", username)
 	}
@@ -387,9 +398,12 @@ func RepoAdd(name string, repoURI string) error {
 	}
 
 	cmd := exec.Command("helm", args...)
+
 	stderr := new(bytes.Buffer)
 	cmd.Stderr = stderr
+
 	err = cmd.Run()
+
 	if _, exited := err.(*exec.ExitError); exited {
 		msg := strings.TrimSpace(stderr.String())
 		return errors.New(msg)
@@ -397,14 +411,68 @@ func RepoAdd(name string, repoURI string) error {
 
 	return nil
 }
+
+func Repos() (map[string]string, error) {
+	repos := map[string]string{}
+
+	cmd := exec.Command("helm", "repo", "list")
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		data := strings.TrimSpace(string(output))
+
+		if strings.Contains(data, "no repositories to show") {
+			return repos, nil
+		}
+
+		return nil, err
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(output))
+
+	const NameLabel = "NAME"
+	const URLLabel = "URL"
+
+	columnName := -1
+	columnURL := -1
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		indexName := strings.Index(line, NameLabel)
+		indexURL := strings.Index(line, URLLabel)
+
+		if indexName >= 0 && indexURL >= 0 {
+			columnName = indexName
+			columnURL = indexURL
+		} else {
+			if columnName >= 0 && columnURL >= 0 {
+				name := strings.Fields(line[columnName:])[0]
+				url := strings.Fields(line[columnURL:])[0]
+
+				repos[name] = url
+			}
+		}
+	}
+
+	return repos, nil
+}
 func RepoUpdate() error {
+	if repos, err := Repos(); err == nil && len(repos) == 0 {
+		return nil
+	}
+
 	cmd := exec.Command("helm", "repo", "update")
+
 	stderr := new(bytes.Buffer)
 	cmd.Stderr = stderr
+
 	err := cmd.Run()
+
 	if _, exited := err.(*exec.ExitError); exited {
 		msg := strings.TrimSpace(stderr.String())
 		err = errors.New(msg)
 	}
+
 	return err
 }
